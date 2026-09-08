@@ -38,6 +38,8 @@ def main() -> int:
     parser.add_argument("--keep", action="store_true", help="Keep the Colab session for debugging")
     parser.add_argument("--notify-slack", action="store_true")
     parser.add_argument("--send-slack", action="store_true")
+    parser.add_argument("--artifact-url")
+    parser.add_argument("--github-url")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -196,6 +198,10 @@ def _notify(args: argparse.Namespace) -> None:
         command.append(str(output))
     if args.send_slack:
         command.append("--send")
+    if args.artifact_url:
+        command.extend(["--artifact-url", args.artifact_url])
+    if args.github_url:
+        command.extend(["--github-url", args.github_url])
     subprocess.run(command, check=True)
 
 
