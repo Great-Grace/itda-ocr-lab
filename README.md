@@ -39,7 +39,7 @@ The smoke backend reads optional sidecar files named `<image>.ocr.json`. This le
 
 ## First-time team setup
 
-The repository is private, so GitHub collaborator access is required for every teammate. Google login by itself is not enough for Colab to clone a private repository: add an `ITDA_GITHUB_TOKEN` secret in Colab. Put the dataset in the shared Drive folder, then create its manifest once with `scripts/init_drive_dataset.py`. The exact team checklist is in `docs/team_onboarding.md`.
+The repository is private, so GitHub collaborator access is required for every teammate. Google login by itself is not enough for Colab to clone a private repository: add an `ITDA_GITHUB_TOKEN` secret in Colab. Every teammate may keep the competition image folder in their own Drive; leave `DRIVE_ROOT` blank in the Colab notebook for one-time auto-discovery and manifest creation. The exact team checklist is in `docs/team_onboarding.md`.
 
 ## Artifacts
 

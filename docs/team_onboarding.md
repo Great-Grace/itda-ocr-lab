@@ -3,15 +3,16 @@
 ## One-time owner setup
 
 1. Invite every teammate to the private GitHub repository as a collaborator.
-2. Create one shared Drive folder, for example `ITDA_OCR`.
-3. Put the public competition images under `ITDA_OCR/images/`.
-4. In Colab, mount Drive and run the dataset initializer once:
+2. Each teammate may use their own Google Drive; a shared folder is optional.
+3. Put the public competition images in any one folder in that Drive. An `images/` subfolder is optional.
+4. On the first run, leave `DRIVE_ROOT` blank in the Colab notebook. The agent searches the logged-in user's Drive for one folder containing roughly 3,000 images, then writes `DATASET_MANIFEST.yaml` beside that folder. It asks for a choice if several folders match.
+5. To initialize a known folder manually instead:
 
 ```bash
-python scripts/init_drive_dataset.py /content/drive/MyDrive/ITDA_OCR
+python scripts/init_drive_dataset.py /content/drive/MyDrive/any-uploaded-folder
 ```
 
-If a labeled dev set exists, place it under `labels/` and add `--labels-file labels/dev_labels.csv` when initializing.
+If a labeled dev set exists, place it anywhere under the same root and add `--labels-file labels/dev_labels.csv` when initializing.
 
 ## Per-team-member setup
 

@@ -37,8 +37,8 @@ def main() -> int:
     parser.add_argument("--mount-root", default="/content/drive")
     parser.add_argument(
         "--drive-root",
-        default="MyDrive/ITDA_OCR",
-        help="Path below /content/drive used by a remote Colab session",
+        default="auto",
+        help="Path below /content/drive, or 'auto' to discover this user's uploaded image folder",
     )
     parser.add_argument("--labels", help="Labels path relative to dataset root")
     parser.add_argument("--max-images", type=int)
@@ -172,7 +172,13 @@ def _run_colab(args: argparse.Namespace, config: dict, dataset: dict[str, str], 
 
 def _make_bundle(destination: Path, config_path: str) -> None:
     with tarfile.open(destination, "w:gz") as tar:
-        for relative in ("src", "scripts/run_experiment.py", "scripts/check_submission.py", "requirements.txt"):
+        for relative in (
+            "src",
+            "scripts/run_experiment.py",
+            "scripts/check_submission.py",
+            "scripts/resolve_drive_dataset.py",
+            "requirements.txt",
+        ):
             path = ROOT / relative
             if path.exists():
                 tar.add(path, arcname=f"itda_ocr/{relative}")
@@ -188,6 +194,7 @@ import os
 import subprocess
 import sys
 import tarfile
+import json
 import yaml
 
 bundle = Path("/content/itda_ocr_bundle.tar.gz")
@@ -199,17 +206,16 @@ config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {{}}
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(repo_root / "requirements.txt")], check=True)
 for requirement in (config.get("runtime", {{}}).get("extra_requirements", []) or []):
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", requirement], check=True)
-dataset_root = Path("/content/drive") / {args.drive_root!r}
-manifest_path = dataset_root / "DATASET_MANIFEST.yaml"
-if not manifest_path.exists():
-    raise RuntimeError(f"Missing Drive dataset manifest: {{manifest_path}}")
-manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {{}}
-input_dir = dataset_root / str(manifest.get("image_dir", "images"))
-image_suffixes = {{".jpg", ".jpeg", ".png", ".webp", ".bmp"}}
-image_count = sum(1 for path in input_dir.iterdir() if path.is_file() and path.suffix.lower() in image_suffixes)
-expected_count = int(manifest.get("expected_image_count", 3352))
-if image_count != expected_count:
-    raise RuntimeError(f"Dataset count mismatch: expected {{expected_count}}, found {{image_count}}")
+resolver = [sys.executable, str(repo_root / "scripts/resolve_drive_dataset.py"), "--mount-root", "/content/drive"]
+if {args.drive_root!r} == "auto":
+    resolver.extend(["--discover", "--initialize"])
+else:
+    resolver.extend(["--folder", {args.drive_root!r}])
+resolved = subprocess.run(resolver, check=True, capture_output=True, text=True)
+dataset = json.loads(resolved.stdout)
+dataset_root = Path(dataset["root"])
+input_dir = Path(dataset["image_dir"])
+manifest = yaml.safe_load(Path(dataset["manifest"]).read_text(encoding="utf-8")) or {{}}
 labels_path = dataset_root / {labels_expr}
 if not labels_path.exists():
     labels_path = None

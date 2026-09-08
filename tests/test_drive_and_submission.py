@@ -62,6 +62,32 @@ def test_drive_initializer_creates_manifest(tmp_path: Path) -> None:
     assert "expected_image_count: 1" in manifest
 
 
+def test_drive_resolver_discovers_and_initializes_uploaded_folder(tmp_path: Path) -> None:
+    uploaded = tmp_path / "MyDrive" / "competition_images"
+    uploaded.mkdir(parents=True)
+    for index in range(3):
+        (uploaded / f"{index}.jpg").write_bytes(b"image")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/resolve_drive_dataset.py",
+            "--mount-root", str(tmp_path),
+            "--discover",
+            "--initialize",
+            "--min-images", "1",
+            "--max-images", "10",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["root"] == str(uploaded)
+    assert (uploaded / "DATASET_MANIFEST.yaml").exists()
+
+
 def test_experiment_starter_has_safe_dry_run() -> None:
     result = subprocess.run(
         [sys.executable, "scripts/start_experiment.py", "--owner", "team-a", "--name", "trial-1", "--dry-run"],
