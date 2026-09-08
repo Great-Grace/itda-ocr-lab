@@ -1,5 +1,13 @@
 # Module catalog
 
+## Preprocessors
+
+| name | purpose | status |
+|---|---|---|
+| `none` / `passthrough` | default no-op pass-through | ready |
+| `resize` | aspect-ratio preserving downscale (`max_size`) | ready |
+| `grayscale_contrast` | grayscale conversion with contrast enhancement (`contrast_factor`) | ready |
+
 ## OCR backends
 
 | name | purpose | status |

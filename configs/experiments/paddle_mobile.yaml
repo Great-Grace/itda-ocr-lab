@@ -4,12 +4,20 @@ runtime:
   device: cpu
   threads: 4
   max_gpu_hours: 2
+  # Dev-only Colab requirements. Pin the exact tested versions before final submission.
+  extra_requirements:
+    - paddlepaddle-gpu
+    - paddleocr
 
 ocr:
   plugin: paddle_mobile
   params:
-    # Set local paths after the approved weights have been provisioned.
-    lang: en
+    # The adapter refuses implicit downloads. These must point to approved,
+    # pre-provisioned local/Drive folders.
+    require_local_weights: true
+    lang: korean
+    det_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/det
+    rec_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/rec
     use_doc_orientation_classify: false
     use_doc_unwarping: false
     use_textline_orientation: false

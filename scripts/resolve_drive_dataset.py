@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 
 DEFAULT_CANDIDATES = [
     "MyDrive/ITDA_OCR",
@@ -30,7 +31,10 @@ def main() -> int:
             continue
         data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
         image_dir = folder / str(data.get("image_dir", "images"))
-        count = sum(1 for path in image_dir.iterdir() if path.is_file()) if image_dir.exists() else 0
+        count = sum(
+            1 for path in image_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
+        ) if image_dir.exists() else 0
         expected = int(data.get("expected_image_count", args.expected_count))
         matches.append({
             "root": str(folder),

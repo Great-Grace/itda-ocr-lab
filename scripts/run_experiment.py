@@ -21,11 +21,19 @@ def main() -> int:
     parser.add_argument("--labels")
     parser.add_argument("--max-images", type=int)
     parser.add_argument("--device", choices=["cpu", "cuda"], help="Override runtime device for this run")
+    parser.add_argument("--tokens-cache", help="Path to ocr_tokens.jsonl to reuse previously extracted OCR tokens")
     args = parser.parse_args()
     config = load_config(args.config)
     if args.device:
         config.setdefault("runtime", {})["device"] = args.device
-    metrics = run_pipeline(config, args.input, args.output, args.labels, args.max_images)
+    metrics = run_pipeline(
+        config,
+        args.input,
+        args.output,
+        args.labels,
+        args.max_images,
+        tokens_cache_path=args.tokens_cache,
+    )
     print(json.dumps(metrics, ensure_ascii=False, indent=2))
     return 0
 

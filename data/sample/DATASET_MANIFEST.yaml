@@ -1,0 +1,6 @@
+dataset_id: itda_ocr_sample
+version: v1
+expected_image_count: 3
+image_dir: .
+labels_file: labels.csv
+description: Minimal offline mock sample dataset for smoke testing and agent self-verification

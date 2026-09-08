@@ -16,13 +16,15 @@ import shutil
 import subprocess
 import sys
 import tarfile
-import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ocr_lab.config import load_config
+
+
+IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 
 
 def main() -> int:
@@ -33,6 +35,11 @@ def main() -> int:
     parser.add_argument("--gpu", default="T4")
     parser.add_argument("--dataset-root", help="Mounted Drive dataset root; auto-discovery is used when omitted")
     parser.add_argument("--mount-root", default="/content/drive")
+    parser.add_argument(
+        "--drive-root",
+        default="MyDrive/ITDA_OCR",
+        help="Path below /content/drive used by a remote Colab session",
+    )
     parser.add_argument("--labels", help="Labels path relative to dataset root")
     parser.add_argument("--max-images", type=int)
     parser.add_argument("--keep", action="store_true", help="Keep the Colab session for debugging")
@@ -43,7 +50,7 @@ def main() -> int:
     args = parser.parse_args()
 
     config = load_config(args.config)
-    dataset = _resolve_dataset(args.dataset_root, args.mount_root)
+    dataset = _resolve_dataset(args.dataset_root, args.mount_root) if args.mode != "colab" else _remote_dataset(args)
     plan = _plan(config, args, dataset)
     if args.mode == "plan":
         print(json.dumps(plan, ensure_ascii=False, indent=2))
@@ -72,7 +79,10 @@ def _resolve_dataset(dataset_root: str | None, mount_root: str) -> dict[str, str
     manifest = _load_yaml(manifest_path)
     image_dir = root / str(manifest.get("image_dir", "images"))
     expected = int(manifest.get("expected_image_count", 3352))
-    image_count = sum(1 for path in image_dir.iterdir() if path.is_file()) if image_dir.exists() else 0
+    image_count = sum(
+        1 for path in image_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES
+    ) if image_dir.exists() else 0
     if image_count != expected:
         raise SystemExit(f"Dataset count mismatch: expected {expected}, found {image_count} in {image_dir}")
     return {
@@ -81,6 +91,17 @@ def _resolve_dataset(dataset_root: str | None, mount_root: str) -> dict[str, str
         "manifest": str(manifest_path),
         "dataset_id": str(manifest.get("dataset_id", "unknown")),
         "version": str(manifest.get("version", "unknown")),
+    }
+
+
+def _remote_dataset(args: argparse.Namespace) -> dict[str, str]:
+    root = Path("/content/drive") / args.drive_root
+    return {
+        "root": str(root),
+        "manifest": str(root / "DATASET_MANIFEST.yaml"),
+        "dataset_id": "remote_validation_required",
+        "version": "remote_validation_required",
+        "image_dir": "remote_validation_required",
     }
 
 
@@ -160,29 +181,52 @@ def _make_bundle(destination: Path, config_path: str) -> None:
 
 
 def _remote_script(dataset: dict[str, str], args: argparse.Namespace) -> str:
-    labels = str(Path(dataset["root"]) / args.labels) if args.labels else ""
     config_rel = Path(args.config).resolve().relative_to(ROOT)
+    labels_expr = repr(args.labels) if args.labels else 'str(manifest.get("labels_file", ""))'
     return f'''from pathlib import Path
-import shutil
+import os
 import subprocess
 import sys
 import tarfile
+import yaml
 
 bundle = Path("/content/itda_ocr_bundle.tar.gz")
 with tarfile.open(bundle, "r:gz") as archive:
     archive.extractall("/content")
-input_dir = {dataset["image_dir"]!r}
+repo_root = Path("/content/itda_ocr")
+config_path = repo_root / {str(config_rel)!r}
+config = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {{}}
+subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(repo_root / "requirements.txt")], check=True)
+for requirement in (config.get("runtime", {{}}).get("extra_requirements", []) or []):
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", requirement], check=True)
+dataset_root = Path("/content/drive") / {args.drive_root!r}
+manifest_path = dataset_root / "DATASET_MANIFEST.yaml"
+if not manifest_path.exists():
+    raise RuntimeError(f"Missing Drive dataset manifest: {{manifest_path}}")
+manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {{}}
+input_dir = dataset_root / str(manifest.get("image_dir", "images"))
+image_suffixes = {{".jpg", ".jpeg", ".png", ".webp", ".bmp"}}
+image_count = sum(1 for path in input_dir.iterdir() if path.is_file() and path.suffix.lower() in image_suffixes)
+expected_count = int(manifest.get("expected_image_count", 3352))
+if image_count != expected_count:
+    raise RuntimeError(f"Dataset count mismatch: expected {{expected_count}}, found {{image_count}}")
+labels_path = dataset_root / {labels_expr}
+if not labels_path.exists():
+    labels_path = None
+env = os.environ.copy()
+env["ITDA_WEIGHTS_ROOT"] = str(dataset_root / "weights")
 output_dir = Path("/content/itda_ocr/gpu_run")
 output_dir.mkdir(parents=True, exist_ok=True)
-command = [sys.executable, "/content/itda_ocr/scripts/run_experiment.py", "--config", "/content/itda_ocr/{config_rel}", "--input", input_dir, "--output", str(output_dir), "--device", "cuda"]
-{f'command.extend(["--labels", {labels!r}])' if labels else ''}
+command = [sys.executable, str(repo_root / "scripts/run_experiment.py"), "--config", str(config_path), "--input", str(input_dir), "--output", str(output_dir), "--device", "cuda"]
+if labels_path:
+    command.extend(["--labels", str(labels_path)])
 {f'command.extend(["--max-images", "{args.max_images}"])' if args.max_images else ''}
-subprocess.run(command, check=True)
+subprocess.run(command, check=True, env=env)
 cpu_dir = Path("/content/itda_ocr/cpu_run")
 cpu_command = command[:]
 cpu_command[cpu_command.index("--output") + 1] = str(cpu_dir)
 cpu_command[cpu_command.index("--device") + 1] = "cpu"
-subprocess.run(cpu_command, check=True)
+subprocess.run(cpu_command, check=True, env=env)
 with tarfile.open("/content/itda_ocr_artifacts.tar.gz", "w:gz") as archive:
     archive.add("/content/itda_ocr/gpu_run", arcname="gpu_run")
     archive.add("/content/itda_ocr/cpu_run", arcname="cpu_run")

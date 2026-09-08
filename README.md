@@ -11,38 +11,45 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
+# Instant 1-second smoke test using bundled sample fixture
 python scripts/run_experiment.py \
   --config configs/baseline_mock.yaml \
-  --input data/dev_images \
-  --output runs/local_smoke
+  --input data/sample \
+  --output runs/local_smoke \
+  --labels data/sample/labels.csv
 ```
 
-The smoke backend reads optional sidecar files named `<image>.ocr.json`. This lets the pipeline and review flow be tested before a real OCR weight is installed.
+The smoke backend reads optional sidecar files named `<image>.ocr.json`. This lets the entire pipeline, selection scoring, and visual review flow be tested instantly without downloading heavy OCR weights.
 
-## Colab execution
+## Colab & Notebook execution
 
-The intended path for GPU work is the Colab CLI. It is deliberately separate from final submission inference:
-
-```bash
-colab run --gpu T4 scripts/run_experiment.py \
-  --config configs/experiments/my_experiment.yaml \
-  --input data/dev_images \
-  --output runs/colab_my_experiment
-```
-
-The final submission must run with `--device cpu`, local weights, no network download, and the competition environment variables. See `docs/colab_workflow.md` and `docs/agent_workflow.md`.
+1. **Interactive GPU Experimentation**:
+   Open `notebooks/run_on_colab.ipynb` directly in Google Colab to mount Google Drive, pull repository changes, run GPU experiments, and execute the CPU compliance gate.
+2. **Headless CLI Execution**:
+   ```bash
+   colab run --gpu T4 scripts/run_experiment.py \
+     --config configs/experiments/my_experiment.yaml \
+     --input data/dev_images \
+     --output runs/colab_my_experiment
+   ```
+3. **Official Competition Submission**:
+   Use `notebooks/predict.ipynb` for the official offline, CPU-only evaluation complying with ITDA competition rules.
 
 ## Artifacts
 
 Every run writes human-readable and machine-readable results:
 
 ```text
-predictions.csv       # final_date output
+predictions.csv       # final_date output formatted for submission
 review.csv            # tokens, candidates, selected result, error label
-ocr_tokens.jsonl      # cached OCR stage for cheap Selection experiments
+summary.md            # non-developer friendly KPI summary and failure analysis
+review.html           # interactive single-file offline visual dashboard
+ocr_tokens.jsonl      # cached OCR stage for fast Selection iterations (--tokens-cache)
 metrics.json          # accuracy, latency, NONE rate when labels exist
 run_manifest.json     # config, git revision, device, timestamps
+architecture.md       # human-readable snapshot of modules & parameters
 ```
+
 
 `runs/` and `weights/` are ignored by Git. Weight provenance belongs in `configs/weights.yaml` and the actual files belong in a release asset or an approved shared storage location.
 
