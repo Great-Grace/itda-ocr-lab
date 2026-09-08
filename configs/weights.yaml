@@ -1,0 +1,5 @@
+version: 1
+
+# Register approved weights here. The actual files stay outside Git.
+# The final inference path must resolve a local path and verify sha256.
+weights: {}
