@@ -44,3 +44,31 @@ def test_submission_notebook_uses_injected_paths() -> None:
     assert 'os.environ.get("ITDA_INPUT_DIR"' in first_cell
     assert 'os.environ.get("ITDA_OUTPUT_PATH"' in first_cell
     assert "shutil.copyfile(run_dir / \"predictions.csv\", output_path)" in all_code
+
+
+def test_drive_initializer_creates_manifest(tmp_path: Path) -> None:
+    images = tmp_path / "images"
+    images.mkdir()
+    (images / "1.jpg").write_bytes(b"image")
+    result = subprocess.run(
+        [sys.executable, "scripts/init_drive_dataset.py", str(tmp_path), "--dataset-id", "fixture"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    manifest = (tmp_path / "DATASET_MANIFEST.yaml").read_text(encoding="utf-8")
+    assert "expected_image_count: 1" in manifest
+
+
+def test_experiment_starter_has_safe_dry_run() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/start_experiment.py", "--owner", "team-a", "--name", "trial-1", "--dry-run"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert "feature/team-a-trial-1" in result.stdout

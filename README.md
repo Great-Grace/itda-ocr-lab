@@ -37,6 +37,10 @@ The smoke backend reads optional sidecar files named `<image>.ocr.json`. This le
 3. **Official Competition Submission**:
    Use `notebooks/predict.ipynb` for the official offline, CPU-only evaluation complying with ITDA competition rules.
 
+## First-time team setup
+
+The repository is private, so GitHub collaborator access is required for every teammate. Google login by itself is not enough for Colab to clone a private repository: add an `ITDA_GITHUB_TOKEN` secret in Colab. Put the dataset in the shared Drive folder, then create its manifest once with `scripts/init_drive_dataset.py`. The exact team checklist is in `docs/team_onboarding.md`.
+
 ## Artifacts
 
 Every run writes human-readable and machine-readable results:
@@ -57,7 +61,7 @@ architecture.md       # human-readable snapshot of modules & parameters
 
 ## Team workflow
 
-1. Create a branch: `feature/<name>-<experiment>`.
+1. Create a branch and a config together: `python scripts/start_experiment.py --owner <handle> --name <experiment>`.
 2. Add or edit one file under `configs/experiments/`.
 3. Run the experiment and inspect `review.csv`/`review.html` when available.
 4. Commit code/config plus a short result summary. Never commit weights or raw data.
