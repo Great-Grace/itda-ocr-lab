@@ -39,7 +39,7 @@ The smoke backend reads optional sidecar files named `<image>.ocr.json`. This le
 
 ## First-time team setup
 
-This repository is a versioned starter kit, not a shared experiment workspace. Team members clone it, work only in their local copy, and report results through Slack. If the repository stays private, every teammate needs read access; Google login by itself is not enough for Colab to clone it, so add an `ITDA_GITHUB_TOKEN` secret in Colab. Every teammate may keep the competition image folder in their own Drive; leave `DRIVE_ROOT` blank in the Colab notebook for one-time auto-discovery and manifest creation. The exact team checklist is in `docs/team_onboarding.md`.
+This public repository is a versioned starter kit, not a shared experiment workspace. Team members clone it, work only in their local copy, and report results through Slack. Colab can clone the public repository without a GitHub token. Every teammate may keep the competition image folder in their own Drive; leave `DRIVE_ROOT` blank in the Colab notebook for one-time auto-discovery and manifest creation. The exact team checklist is in `docs/team_onboarding.md`.
 
 ## Artifacts
 
