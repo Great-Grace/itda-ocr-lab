@@ -4,6 +4,8 @@ Colab-first, CLI-driven OCR experiment harness for the ITDA competition.
 
 The repository is the shared source of truth. Colab is an execution worker, not the place where the canonical code lives. Team members can use Codex, Claude Code, Antigravity, or plain Colab; every experiment is represented by a versioned YAML config and produces reviewable artifacts.
 
+The harness is model- and weight-agnostic. `mock` is only the built-in smoke backend; PaddleOCR is only an optional reference adapter. A team experiment selects its own adapter, approved weight ID, and model-specific parameters through its config.
+
 ## Quick start
 
 ```bash

@@ -4,12 +4,12 @@ The registry is the only approved way for an agent to choose model weights. Add 
 
 ```yaml
 weights:
-  paddle_ocr_ko_mobile:
+  example_detector_recognizer:
     task: detection_and_recognition
     language: ko_en_numeric
     source: approved_release_url
     license: Apache-2.0
-    local_path: weights/paddle_ocr_ko_mobile
+    local_path: weights/example_detector_recognizer
     sha256: replace_me
     supports_finetuning: false
     cpu_profile: light

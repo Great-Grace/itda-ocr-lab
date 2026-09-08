@@ -76,6 +76,9 @@ def _format(metrics: dict[str, Any], manifest: dict[str, Any], architecture: dic
         f"• latency p95: `{metrics.get('latency_ms_p95', 'n/a')} ms`",
         f"• NONE rate: `{metrics.get('none_rate', 'n/a')}`",
     ]
+    weight_id = architecture.get("ocr", {}).get("weight_id")
+    if weight_id:
+        lines.insert(lines.index("• selector: `" + str(architecture.get('selector', {}).get('plugin', 'none')) + "`"), f"• OCR weight: `{weight_id}`")
     if gpu_metrics is not None:
         lines.insert(lines.index("*Metrics*") + 1, f"• GPU exact-match: `{gpu_metrics.get('final_date_exact_match', 'n/a')}`")
     if artifact_url:

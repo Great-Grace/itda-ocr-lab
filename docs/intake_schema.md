@@ -5,7 +5,7 @@ An agent should turn a natural-language request into a small YAML request before
 ```yaml
 hypothesis: "MSR-style resizing reduces date recognition errors under aspect-ratio distortion"
 target: preprocess
-baseline_config: configs/experiments/paddle_mobile.yaml
+baseline_config: configs/baseline_mock.yaml
 input_dir: data/dev_images
 labels_path: data/dev_labels.csv
 output_name: msr_resize_ablation

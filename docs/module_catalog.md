@@ -13,7 +13,7 @@
 | name | purpose | status |
 |---|---|---|
 | `mock` | offline contract and pipeline smoke test using OCR sidecars | ready |
-| `paddle_mobile` | optional local PaddleOCR adapter | adapter included; install and pin PaddleOCR separately |
+| `paddle_mobile` | optional local PaddleOCR reference adapter | not a default; install and pin only when an experiment selects it |
 
 ## Selection and normalization
 

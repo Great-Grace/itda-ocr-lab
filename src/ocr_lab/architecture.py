@@ -33,6 +33,8 @@ def write_architecture_artifacts(run_dir: Path, config: dict[str, Any]) -> dict[
         component = snapshot[name]
         lines.append(f"## {name}")
         lines.append(f"- plugin: `{component.get('plugin', 'none')}`")
+        if component.get("weight_id"):
+            lines.append(f"- weight_id: `{component['weight_id']}`")
         params = component.get("params", {})
         if params:
             lines.append("- parameters:")
@@ -59,10 +61,13 @@ def _component(value: Any) -> dict[str, Any]:
         return {"plugin": value, "params": {}}
     if not isinstance(value, dict):
         return {"plugin": "none", "params": {}}
-    return {
+    result = {
         "plugin": value.get("plugin", "none"),
         "params": _safe_value(value.get("params", {})),
     }
+    if value.get("weight_id"):
+        result["weight_id"] = _safe_value(value["weight_id"], "weight_id")
+    return result
 
 
 def _safe_value(value: Any, key: str = "") -> Any:

@@ -1,19 +1,20 @@
-name: paddle_mobile_keyword_v1
+# Optional reference only — this is not the project baseline or a prescribed
+# weight choice. Copy it into configs/experiments/ only when a team member
+# explicitly wants to test PaddleOCR against the current candidate.
+name: paddle_mobile_reference_example
 
 runtime:
   device: cpu
   threads: 4
   max_gpu_hours: 2
-  # Dev-only Colab requirements. Pin the exact tested versions before final submission.
   extra_requirements:
     - paddlepaddle-gpu
     - paddleocr
 
 ocr:
   plugin: paddle_mobile
+  weight_id: replace_with_approved_weight_id
   params:
-    # The adapter refuses implicit downloads. These must point to approved,
-    # pre-provisioned local/Drive folders.
     require_local_weights: true
     lang: korean
     det_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/det
@@ -21,8 +22,6 @@ ocr:
     use_doc_orientation_classify: false
     use_doc_unwarping: false
     use_textline_orientation: false
-    # det_model_dir: weights/paddle/det
-    # rec_model_dir: weights/paddle/rec
 
 selector:
   plugin: keyword_regex

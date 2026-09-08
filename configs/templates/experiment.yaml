@@ -4,9 +4,14 @@ runtime:
   device: cpu
   threads: 4
   max_gpu_hours: 2
+  # Optional development-only dependencies for this adapter. Pin exact tested
+  # versions in requirements.txt before final submission.
+  extra_requirements: []
 
 ocr:
   plugin: replace_me
+  # Reference an approved entry in configs/weights.yaml when weights are used.
+  weight_id: replace_me
   params: {}
 
 preprocess:
