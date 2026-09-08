@@ -10,6 +10,7 @@ from typing import Any
 
 from .config import component_spec
 from .contracts import OCRToken
+from .architecture import write_architecture_artifacts
 from .modules import NORMALIZERS, OCR_BACKENDS, SELECTORS
 
 
@@ -20,6 +21,7 @@ def run_pipeline(config: dict[str, Any], input_dir: str | Path, output_dir: str 
     input_path = Path(input_dir)
     run_dir = Path(output_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
+    architecture = write_architecture_artifacts(run_dir, config)
     image_paths = sorted(p for p in input_path.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES)
     if max_images:
         image_paths = image_paths[:max_images]
@@ -73,6 +75,7 @@ def run_pipeline(config: dict[str, Any], input_dir: str | Path, output_dir: str 
         "ocr_backend": ocr_name,
         "selector": selector_name,
         "normalizer": normalizer_name,
+        "architecture": architecture,
     }
     (run_dir / "run_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return metrics
