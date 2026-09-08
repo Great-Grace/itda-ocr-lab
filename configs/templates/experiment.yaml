@@ -1,0 +1,27 @@
+name: replace_me
+
+runtime:
+  device: cpu
+  threads: 4
+  max_gpu_hours: 2
+
+ocr:
+  plugin: replace_me
+  params: {}
+
+preprocess:
+  plugin: none
+  params: {}
+
+selector:
+  plugin: keyword_regex
+  params: {}
+
+normalizer:
+  plugin: date_ko_v1
+  params: {}
+
+# Optional sweep. Keys are dotted config paths and values are lists.
+ablation:
+  max_runs: 8
+  grid: {}

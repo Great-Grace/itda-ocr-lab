@@ -1,0 +1,1 @@
+Read and follow `AGENTS.md`. This repository is config-first: preserve the module contracts, record reproducible artifacts, and validate CPU-only inference before treating an experiment as successful.

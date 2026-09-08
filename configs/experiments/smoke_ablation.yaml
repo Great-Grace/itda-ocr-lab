@@ -1,0 +1,18 @@
+name: smoke_ablation
+runtime:
+  device: cpu
+ocr:
+  plugin: mock
+  params: {}
+selector:
+  plugin: keyword_regex
+  params:
+    keyword_weight: 0.7
+    confidence_weight: 0.2
+normalizer:
+  plugin: date_ko_v1
+  params: {}
+ablation:
+  max_runs: 2
+  grid:
+    selector.params.keyword_weight: [0.5, 0.7]

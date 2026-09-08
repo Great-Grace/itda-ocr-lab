@@ -1,0 +1,28 @@
+name: paddle_mobile_keyword_v1
+
+runtime:
+  device: cpu
+  threads: 4
+  max_gpu_hours: 2
+
+ocr:
+  plugin: paddle_mobile
+  params:
+    # Set local paths after the approved weights have been provisioned.
+    lang: en
+    use_doc_orientation_classify: false
+    use_doc_unwarping: false
+    use_textline_orientation: false
+    # det_model_dir: weights/paddle/det
+    # rec_model_dir: weights/paddle/rec
+
+selector:
+  plugin: keyword_regex
+  params:
+    keyword_weight: 0.7
+    confidence_weight: 0.2
+    position_weight: 0.1
+
+normalizer:
+  plugin: date_ko_v1
+  params: {}

@@ -1,0 +1,20 @@
+name: baseline_mock
+
+runtime:
+  device: cpu
+  threads: 4
+
+ocr:
+  plugin: mock
+  params: {}
+
+selector:
+  plugin: keyword_regex
+  params:
+    keyword_weight: 0.7
+    confidence_weight: 0.2
+
+normalizer:
+  plugin: date_ko_v1
+  params: {}
+
