@@ -97,4 +97,5 @@ def test_experiment_starter_has_safe_dry_run() -> None:
         check=False,
     )
     assert result.returncode == 0
-    assert "feature/team-a-trial-1" in result.stdout
+    assert "configs/experiments/trial-1.yaml" in result.stdout
+    assert "feature/" not in result.stdout

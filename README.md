@@ -39,7 +39,7 @@ The smoke backend reads optional sidecar files named `<image>.ocr.json`. This le
 
 ## First-time team setup
 
-The repository is private, so GitHub collaborator access is required for every teammate. Google login by itself is not enough for Colab to clone a private repository: add an `ITDA_GITHUB_TOKEN` secret in Colab. Every teammate may keep the competition image folder in their own Drive; leave `DRIVE_ROOT` blank in the Colab notebook for one-time auto-discovery and manifest creation. The exact team checklist is in `docs/team_onboarding.md`.
+This repository is a versioned starter kit, not a shared experiment workspace. Team members clone it, work only in their local copy, and report results through Slack. If the repository stays private, every teammate needs read access; Google login by itself is not enough for Colab to clone it, so add an `ITDA_GITHUB_TOKEN` secret in Colab. Every teammate may keep the competition image folder in their own Drive; leave `DRIVE_ROOT` blank in the Colab notebook for one-time auto-discovery and manifest creation. The exact team checklist is in `docs/team_onboarding.md`.
 
 ## Artifacts
 
@@ -61,10 +61,10 @@ architecture.md       # human-readable snapshot of modules & parameters
 
 ## Team workflow
 
-1. Create a branch and a config together: `python scripts/start_experiment.py --owner <handle> --name <experiment>`.
+1. Create a local config: `python scripts/start_experiment.py --owner <handle> --name <experiment>`.
 2. Add or edit one file under `configs/experiments/`.
 3. Run the experiment and inspect `review.csv`/`review.html` when available.
-4. Commit code/config plus a short result summary. Never commit weights or raw data.
-5. Open a PR. The PR template asks for the exact config, baseline comparison, CPU timing, and representative failures.
+4. Read the generated `team_report.md` and `slack_message.md`, then share the result in the team Slack channel only when requested.
+5. Do not commit or push local experiments. The team lead integrates a proven result into the canonical starter kit later.
 
 The project is intentionally config-first: a new model should be an adapter plus a config, not a rewrite of the pipeline.

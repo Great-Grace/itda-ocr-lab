@@ -12,6 +12,7 @@ def generate_reports(
     review_rows: list[dict[str, Any]],
     metrics: dict[str, Any],
     labels_path: str | Path | None = None,
+    architecture: dict[str, Any] | None = None,
 ) -> tuple[Path, Path]:
     labels: dict[str, str] = {}
     if labels_path:
@@ -41,8 +42,42 @@ def generate_reports(
 
     _write_summary_md(summary_path, metrics, enhanced_rows)
     _write_review_html(html_path, metrics, enhanced_rows)
+    _write_team_report(run_dir / "team_report.md", metrics, enhanced_rows, architecture or {})
 
     return summary_path, html_path
+
+
+def _write_team_report(path: Path, metrics: dict[str, Any], rows: list[dict[str, Any]], architecture: dict[str, Any]) -> None:
+    """Write a paste-ready report without exposing raw paths or secrets."""
+    lines = [
+        "# OCR Experiment Team Report",
+        "",
+        "## Results",
+        f"- Images: {metrics.get('image_count', len(rows))}",
+        f"- Exact-match: {metrics.get('final_date_exact_match', 'N/A')}",
+        f"- Mean latency: {metrics.get('latency_ms_mean', 'N/A')} ms",
+        f"- P95 latency: {metrics.get('latency_ms_p95', 'N/A')} ms",
+        f"- NONE rate: {metrics.get('none_rate', 'N/A')}",
+        "",
+        "## Architecture",
+    ]
+    for name in ("preprocess", "ocr", "selector", "normalizer"):
+        component = architecture.get(name, {})
+        lines.append(f"- {name}: `{component.get('plugin', 'none')}`")
+        if component.get("weight_id"):
+            lines.append(f"  - weight_id: `{component['weight_id']}`")
+        params = component.get("params", {})
+        if params:
+            lines.append(f"  - params: `{json.dumps(params, ensure_ascii=False, separators=(',', ':'))}`")
+    runtime = architecture.get("runtime", {})
+    if runtime:
+        lines.extend(["", "## Runtime", f"- `{json.dumps(runtime, ensure_ascii=False, separators=(',', ':'))}`"])
+    failures = [row for row in rows if row.get("is_correct") is False]
+    lines.extend(["", "## Failure summary", f"- Incorrect labeled samples: {len(failures)}"])
+    for row in failures[:5]:
+        lines.append(f"- `{row['image_id']}`: expected `{row['ground_truth']}`, got `{row['final_date']}`; candidate `{row['candidate']}`")
+    lines.extend(["", "Detailed artifacts: `architecture.md`, `summary.md`, `review.html`, `review.csv`, `metrics.json`."])
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _write_summary_md(path: Path, metrics: dict[str, Any], rows: list[dict[str, Any]]) -> None:

@@ -29,7 +29,7 @@
    * 어떤 모듈(`preprocess`, `ocr`, `selector`, `normalizer`)을 어떻게 바꿀지 판단합니다.
    * 필요시 [docs/intake_schema.md](docs/intake_schema.md)를 참고해 최소한의 핵심 질문만 사용자에게 던집니다.
 2. **새로운 Config 생성**:
-   * 새 실험은 먼저 `python scripts/start_experiment.py --owner <handle> --name <slug>`로 독립 branch와 `configs/experiments/<실험명>.yaml`을 만듭니다. 기존 베이스라인을 직접 덮어쓰지 마세요.
+   * 기본 배포 모델은 clone-only입니다. 새 실험은 `python scripts/start_experiment.py --owner <handle> --name <slug>`로 로컬 config만 만듭니다. 기존 베이스라인을 직접 덮어쓰지 마세요. 로컬 branch가 정말 필요할 때만 `--branch`를 붙입니다.
 3. **1초 스모크 테스트 (필수)**:
    * 큰 실험이나 GPU 작업을 돌리기 전에, 먼저 내장 샘플로 무결성을 검증합니다:
      ```bash
@@ -59,3 +59,4 @@
 - ❌ 원본 이미지, 대회 라벨, 가중치 바이너리, 비밀키/토큰, `runs/` 결과물을 Git에 커밋하지 마세요.
 - ❌ `python scripts/check_submission.py` 검증 통과 없이 성공을 선언하지 마세요.
 - ❌ `--send` 또는 Colab의 `SEND_SLACK=True`가 명시되지 않았는데 Slack에 메시지를 보내지 마세요.
+- ❌ 팀원 실험 중에는 `git commit`, `git push`, PR 생성, merge를 하지 마세요. 코드·config·결과는 로컬에 두고 Slack 보고로 공유합니다.

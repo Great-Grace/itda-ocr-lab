@@ -23,6 +23,7 @@ def test_mock_pipeline_writes_submission(tmp_path: Path) -> None:
     assert metrics["final_date_exact_match"] == 1.0
     assert (run_dir / "predictions.csv").exists()
     assert (run_dir / "summary.md").exists()
+    assert (run_dir / "team_report.md").exists()
     assert (run_dir / "review.html").exists()
     assert "2026-05-29" in (run_dir / "predictions.csv").read_text(encoding="utf-8")
     assert "ITDA OCR Lab — Review Dashboard" in (run_dir / "review.html").read_text(encoding="utf-8")

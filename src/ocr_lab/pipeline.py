@@ -105,7 +105,7 @@ def run_pipeline(
     (run_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # Generate human-readable Markdown summary and self-contained review HTML viewer
-    generate_reports(run_dir, predictions, review_rows, metrics, labels_path)
+    generate_reports(run_dir, predictions, review_rows, metrics, labels_path, architecture=architecture)
 
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
