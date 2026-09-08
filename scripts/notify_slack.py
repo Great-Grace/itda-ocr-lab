@@ -61,9 +61,13 @@ def _format(metrics: dict[str, Any], manifest: dict[str, Any], architecture: dic
         "",
         "*Architecture*",
         f"• preprocess: `{architecture.get('preprocess', {}).get('plugin', 'none')}`",
+        f"  params: `{_params_text(architecture.get('preprocess', {}))}`",
         f"• OCR: `{architecture.get('ocr', {}).get('plugin', 'none')}`",
+        f"  params: `{_params_text(architecture.get('ocr', {}))}`",
         f"• selector: `{architecture.get('selector', {}).get('plugin', 'none')}`",
+        f"  params: `{_params_text(architecture.get('selector', {}))}`",
         f"• normalizer: `{architecture.get('normalizer', {}).get('plugin', 'none')}`",
+        f"  params: `{_params_text(architecture.get('normalizer', {}))}`",
         f"• runtime: `{runtime.get('device', 'unknown')}`, threads=`{runtime.get('threads', 'default')}`",
         "",
         "*Metrics*",
@@ -79,6 +83,14 @@ def _format(metrics: dict[str, Any], manifest: dict[str, Any], architecture: dic
     if github_url:
         lines.append(f"• GitHub: {github_url}")
     return "\n".join(lines)
+
+
+def _params_text(component: dict[str, Any]) -> str:
+    params = component.get("params", {}) or {}
+    if not params:
+        return "none"
+    text = json.dumps(params, ensure_ascii=False, separators=(", ", ":"))
+    return text if len(text) <= 500 else text[:497] + "..."
 
 
 if __name__ == "__main__":
