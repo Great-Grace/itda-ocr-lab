@@ -57,7 +57,7 @@ class UnionSpatialSelector(KeywordRegexSelector):
 
 def candidate_source(tokens: list[OCRToken], candidate: DateCandidate) -> str:
     sources = {str(tokens[i].extras.get("source", "baseline")) for i in candidate.token_indices if i < len(tokens)}
-    return "yolo" if sources == {"yolo"} else "baseline"
+    return "yolo" if any(s.startswith("yolo") for s in sources) else "baseline"
 
 
 def candidate_box(tokens: list[OCRToken], candidate: DateCandidate) -> list[float] | None:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import os
+import shutil
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -20,7 +22,10 @@ from reportlab.platypus import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT_PDF = ROOT / "reports/itda3_architecture_summary.pdf"
+OUT_PDF_REPORT = ROOT / "reports/[ITDA_Great-Grace]_아키텍처구조도.pdf"
+OUT_PDF_ROOT = ROOT / "[ITDA_Great-Grace]_아키텍처구조도.pdf"
+OUT_PDF_LEGACY = ROOT / "reports/itda3_architecture_summary.pdf"
+
 FONT_REG = Path("/Users/taewoo/Library/Fonts/AppleSDGothicNeoR.ttf")
 FONT_BOLD = Path("/Users/taewoo/Library/Fonts/AppleSDGothicNeoB.ttf")
 pdfmetrics.registerFont(TTFont("AppleSDG", str(FONT_REG)))
@@ -69,9 +74,39 @@ def draw_decorations(canvas, doc):
 
 
 def build_pdf():
-    OUT_PDF.parent.mkdir(parents=True, exist_ok=True)
+    OUT_PDF_REPORT.parent.mkdir(parents=True, exist_ok=True)
+
+    # Dynamic metrics load
+    bench_file = ROOT / "runs/official_cpu_benchmark.json"
+    em_80_str = "85.00%"
+    comp_80_str = "89.58%"
+    lat_sec_str = "1.87s"
+    total_min_str = "15.5분"
+    ram_gb_str = "2.0GB"
+    em_459_str = "80.61%"
+    comp_459_str = "86.20%"
+
+    if bench_file.is_file():
+        try:
+            with open(bench_file, "r", encoding="utf-8") as f:
+                bdata = json.load(f)
+            c80 = bdata.get("custom_80_dataset", {})
+            v459 = bdata.get("validation_459_split", {})
+            em_80_str = c80.get("exact_match_pct", em_80_str)
+            comp_80_str = c80.get("component_avg_pct", comp_80_str)
+            lat_sec = c80.get("latency_sec_mean", 1.87)
+            lat_sec_str = f"{lat_sec:.2f}s"
+            extrap_min = c80.get("extrapolated_500_min", 15.5)
+            total_min_str = f"{extrap_min:.1f}분"
+            ram_gb = c80.get("peak_ram_gb", 2.0)
+            ram_gb_str = f"{ram_gb:.1f}GB"
+            em_459_str = v459.get("final_exact_match_pct", em_459_str)
+            comp_459_str = v459.get("component_avg_pct", comp_459_str)
+        except Exception as err:
+            print(f"Notice: Using default benchmark constants ({err})")
+
     doc = SimpleDocTemplate(
-        str(OUT_PDF),
+        str(OUT_PDF_REPORT),
         pagesize=A4,
         rightMargin=14 * mm,
         leftMargin=14 * mm,
@@ -91,16 +126,16 @@ def build_pdf():
     # KPI Summary Cards (4 Columns)
     cards = [
         [
-            P("<b>85.00%</b>", "BadgeVal"),
-            P("<b>89.58%</b>", "BadgeVal"),
-            P("<b>1.87초/장</b>", "BadgeVal"),
+            P(f"<b>{em_80_str}</b>", "BadgeVal"),
+            P(f"<b>{comp_80_str}</b>", "BadgeVal"),
+            P(f"<b>{lat_sec_str}</b>", "BadgeVal"),
             P("<b>100% 오프라인</b>", "BadgeVal"),
         ],
         [
-            P("최종 일치율 (EM)<br/>80장 85.0% / 459장 84.1%", "BadgeLabel"),
-            P("연/월/일 부분점수 평균<br/>80장 89.6% / 459장 87.4%", "BadgeLabel"),
-            P("500장 총 15.5분 소요<br/>(40분 한계선 대비 2.6배)", "BadgeLabel"),
-            P("외부 API 0원 / 0건<br/>CPU 4코어 / 8GB 최적화", "BadgeLabel"),
+            P(f"최종 일치율 (EM)<br/>80장 {em_80_str} / 459장 {em_459_str}", "BadgeLabel"),
+            P(f"연/월/일 부분점수 평균<br/>80장 {comp_80_str} / 459장 {comp_459_str}", "BadgeLabel"),
+            P(f"500장 총 {total_min_str} 소요<br/>(40분 한계선 대비 안정 여유)", "BadgeLabel"),
+            P(f"외부 API 0원 / 0건<br/>CPU 4코어 / RAM {ram_gb_str}", "BadgeLabel"),
         ],
     ]
     card_table = Table(cards, colWidths=[45 * mm] * 4, rowHeights=[8 * mm, 7 * mm])
@@ -129,10 +164,10 @@ def build_pdf():
             P("<b>[Selector & Normalizer]</b><br/>Spatial IoU + NONE 통일", "TableHeader"),
         ],
         [
-            P("4-Core CPU<br/>단일 프로세스<br/>8GB RAM 상주", "TableItem"),
-            P("• 초고속 ONNX 추론<br/>• 정규식 완결+키워드 일치 시 <b>Fast-Exit</b> (40% 샘플 조기종료)", "TableItem"),
+            P("4-Core CPU<br/>단일 프로세스<br/>8GB RAM 상주<br/>(내부 검증 환경)", "TableItem"),
+            P("• 초고속 ONNX 추론<br/>• 정규식 완결+키워드 일치 시 <b>Fast-Exit</b> (쉬운 샘플 조기종료)", "TableItem"),
             P("• 모호/미탐지 샘플 전역 추론<br/>• DBNet v5 검출 + v6 인식 결합 [1], [7]<br/>• 유효 후보 시 <b>Normal-Exit</b>", "TableItem"),
-            P("• 도트프린트/난반사 집중 복원<br/>• 3x3 Dilation(점 연결) [9]<br/>• CLAHE 듀얼 인식 [4]", "TableItem"),
+            P("• 도트프린트/난반사 집중 복원<br/>• 3x3 Dilation(점 연결) [9]<br/>• 명암비 보정/반전 듀얼 [4]", "TableItem"),
             P("• 공간 거리/IoU 종합 랭킹<br/>• 9/12 공지 <b>NONE</b> 단일화<br/>• <code>submission.csv</code> 출력", "TableItem"),
         ],
     ]
@@ -158,16 +193,16 @@ def build_pdf():
         "<b>① 왜 '4코어 멀티프로세스'가 아니라 '단일 프로세스 8GB RAM 상주 선택적 캐스케이드'인가?</b><br/>"
         "4개 worker 프로세스를 띄우면 딥러닝 모델 인스턴스가 4벌 복제되어 8GB RAM 초과(OOM)가 발생하며, "
         "OpenMP/ONNX 내부 스레드와 OS 컨텍스트 스위칭 경쟁으로 인해 오히려 장당 지연시간이 급증합니다. "
-        "반면 8GB RAM은 경량 ONNX(300MB), PP-OCRv6(1.3GB), YOLOv8n(300MB) 등 3대 모델을 단 한 번만 상주시킨 뒤 "
-        "입력 난이도에 따라 동적으로 라우팅하는 데 최적의 자원입니다 [5], [6].",
+        "반면 8GB RAM 내부 검증 환경 기준, 경량 ONNX(300MB), PP-OCRv6(1.3GB), YOLOv8n(300MB) 등 3대 모델을 단 한 번만 상주시킨 뒤 "
+        "입력 난이도에 따라 동적으로 라우팅하는 단일 프로세스 구조가 메모리 안정성과 캐시 효율성 면에서 최적입니다 [5], [6].",
         "BodyTextK",
     ))
     story.append(P(
         "<b>② 2,400초(40분) 타임아웃 방어 및 추론 속도 10점 만점 예산 분석</b><br/>"
         "기존 모든 이미지에 YOLO+전역 OCR을 무조건 수행하는 Union 방식은 장당 5.7초(500장 47.5분)로 타임아웃 위험이 있었습니다. "
-        "본 제안 모델(AMSC-OCR)은 명확한 40% 이미지를 Tier 1(0.7초)에서 조기 종료(Fast-Exit)하고, 45%는 Tier 2(누적 2.2초), "
-        "난해한 15%만 Tier 3(누적 3.4초)을 거치도록 설계하여 <b>가중 평균 1.87초/장 (500장 총 15.5분)</b>으로 실행을 완료합니다. "
-        "운영진 제한선 대비 <b>2.6배의 안전 여유</b>를 확보하여 속도 점수(10점) 만점권을 달성합니다.",
+        "본 제안 모델(AMSC-OCR)은 YOLO ROI 검출 박스를 상위 4개로 제한(Top-4 Box Capping)하고, 명확한 샘플을 Tier 1에서 조기 종료(Fast-Exit)하도록 설계하여 "
+        f"<b>장당 평균 {lat_sec_str} (500장 총 {total_min_str})</b>으로 실행을 완료합니다. "
+        "운영진 제한선(40분) 대비 <b>충분한 안전 여유</b>를 확보하여 속도 점수(10점) 만점권을 달성합니다.",
         "BodyTextK",
     ))
 
@@ -182,7 +217,7 @@ def build_pdf():
         "<b>병목의 실체 규명:</b> 오답 69건 분해 결과, 96%(66건)는 검출기 박스가 없어서가 아니라 "
         "<b>인식기(Recognizer)가 단절된 도트 잉크나 포장지 난반사로 인해 빈 문자열을 출력하거나 오독한 문제</b>였습니다 [10].<br/>"
         "• <b>3×3 형태학적 팽창 (Morphological Dilation):</b> 연속 잉크젯(CIJ)으로 타각된 불연속 점(Dot)들을 3×3 최소값 필터(MinFilter)로 팽창시켜 일체형 스트로크로 물리적 연결 복원 [9].<br/>"
-        "• <b>적응형 국소 대비 강화 (CLAHE) & 색상 반전 (Inversion):</b> 유광 비닐 및 금속 캔 표면의 난반사를 국소 평활화하고, 검은색 캡 위의 흰색 도트 텍스트를 자동 반전하여 듀얼 추론 [4].",
+        "• <b>적응형 명암비 보정 (Autocontrast) & 색상 반전 (Inversion):</b> 유광 비닐 및 금속 캔 표면의 명암 대비를 자동 정규화(cutoff=2.0)하고, 검은색 캡 위의 흰색 도트 텍스트를 자동 반전(Invert)하여 듀얼 추론 [4].",
         "BodyTextK",
     ))
 
@@ -251,11 +286,11 @@ def build_pdf():
         ],
         [
             P("<b>AMSC-OCR (제안 모델)</b>", "TableItemBold"),
-            P("<b>85.00%</b><br/>(459장: 84.10%)", "TableItemBold"),
-            P("<b>89.58%</b><br/>(459장: 87.44%)", "TableItemBold"),
-            P("<b>1.87s</b>", "TableItemBold"),
-            P("<b>15.5분</b>", "TableItemBold"),
-            P("<b>2.0GB</b>", "TableItemBold"),
+            P(f"<b>{em_80_str}</b><br/>(459장: {em_459_str})", "TableItemBold"),
+            P(f"<b>{comp_80_str}</b><br/>(459장: {comp_459_str})", "TableItemBold"),
+            P(f"<b>{lat_sec_str}</b>", "TableItemBold"),
+            P(f"<b>{total_min_str}</b>", "TableItemBold"),
+            P(f"<b>{ram_gb_str}</b>", "TableItemBold"),
             P("<b>최종 채택 (대규모 검증)</b>", "TableItemBold"),
         ],
     ]
@@ -278,13 +313,28 @@ def build_pdf():
     story.append(P("6. 학술적 근거 및 참고문헌 인용 안내", "SecHeader"))
     story.append(P(
         "운영진 공지(9/14)의 'A4 2장 엄수 및 인용 번호 표기 지침'에 따라, 본문에 인용된 "
-        "<b>[1] PP-OCRv3, [2] GTC, [3] SVTRv2, [4] DCTC, [5] BranchyNet, [6] SkipNet, [7] PP-OCRv6, [8] ONNX Quantization, [9] ASTER, [10] STR Benchmark</b> "
+        "<b>[1] PP-OCRv3, [2] GTC, [3] SVTRv2, [4] Digital Image Contrast Normalization, [5] BranchyNet, [6] SkipNet, [7] PP-OCRv6, [8] ONNX Quantization, [9] Mathematical Morphology, [10] STR Benchmark</b> "
         "논문명, 저자, 링크 등 상세한 전체 서지 목록은 <b>팀 GitHub 저장소(https://github.com/Great-Grace/itda-ocr-lab) README.md 하단</b>에 전문 기재되어 있습니다.",
         "BodyTextK",
     ))
 
     doc.build(story, onFirstPage=draw_decorations, onLaterPages=draw_decorations)
-    print(f"Championship Architecture Summary PDF built successfully: {OUT_PDF}")
+
+    shutil.copyfile(OUT_PDF_REPORT, OUT_PDF_ROOT)
+    shutil.copyfile(OUT_PDF_REPORT, OUT_PDF_LEGACY)
+    print(f"Championship Architecture Summary PDF built successfully:")
+    print(f"  - {OUT_PDF_REPORT}")
+    print(f"  - {OUT_PDF_ROOT}")
+    print(f"  - {OUT_PDF_LEGACY}")
+
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(str(OUT_PDF_REPORT))
+        page_count = len(reader.pages)
+        print(f"Verified Page Count: {page_count} (Strictly 2 pages)")
+        assert page_count == 2, f"Error: Page count is {page_count}, expected exactly 2!"
+    except ImportError:
+        print("Notice: pypdf not installed, skipping automated page count assertion.")
 
 
 if __name__ == "__main__":

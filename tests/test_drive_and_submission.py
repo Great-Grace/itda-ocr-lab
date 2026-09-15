@@ -37,13 +37,15 @@ def test_drive_resolver_counts_only_images(tmp_path: Path) -> None:
 
 
 def test_submission_notebook_uses_injected_paths() -> None:
-    notebook = json.loads((ROOT / "notebooks/predict.ipynb").read_text(encoding="utf-8"))
+    notebook = json.loads((ROOT / "predict.ipynb").read_text(encoding="utf-8"))
     first_cell = "".join(notebook["cells"][0]["source"])
     all_code = "\n".join("".join(cell["source"]) for cell in notebook["cells"] if cell["cell_type"] == "code")
     assert notebook["cells"][0]["cell_type"] == "code"
     assert 'os.environ.get("ITDA_INPUT_DIR"' in first_cell
     assert 'os.environ.get("ITDA_OUTPUT_PATH"' in first_cell
-    assert "shutil.copyfile(run_dir / \"predictions.csv\", output_path)" in all_code
+    assert "df.to_csv(OUTPUT_PATH, index=False)" in all_code
+    assert "AMSC_CascadeOCRBackend" in all_code
+    assert "UnionSpatialSelector" in all_code
 
 
 def test_drive_initializer_creates_manifest(tmp_path: Path) -> None:

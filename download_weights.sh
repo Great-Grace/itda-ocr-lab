@@ -57,14 +57,41 @@ else
     echo "[FETCH] Downloading trained YOLOv8n expiry detector checkpoint..."
     YOLO_URL="https://github.com/Great-Grace/itda-ocr-lab/releases/download/v1.0.0/expiry_binary_yolov8n_1280_best.pt"
     if command -v curl >/dev/null 2>&1; then
-        curl -fsSL -L -o "${YOLO_FILE}" "${YOLO_URL}" || true
+        curl -fsSL -L -o "${YOLO_FILE}" "${YOLO_URL}"
     elif command -v wget >/dev/null 2>&1; then
-        wget -q -O "${YOLO_FILE}" "${YOLO_URL}" || true
+        wget -q -O "${YOLO_FILE}" "${YOLO_URL}"
+    else
+        echo "[ERROR] Neither curl nor wget is available!"
+        exit 1
     fi
 fi
 
 echo "=== [Verification Summary] ==="
-echo "Paddle Det Model: $([ -d "${PADDLE_DIR}/ppocrv5_mobile_det" ] && echo 'READY' || echo 'MISSING')"
-echo "Paddle Rec Model: $([ -d "${PADDLE_DIR}/PP-OCRv6_medium_rec" ] && echo 'READY' || echo 'MISSING')"
-echo "YOLO Expiry Model: $([ -f "${YOLO_DIR}/expiry_binary_yolov8n_1280_best.pt" ] && echo 'READY' || echo 'OPTIONAL/FALLBACK')"
-echo "Setup complete. Model weights are ready in: ${WEIGHTS_DIR}"
+MISSING=0
+if [ -f "${PADDLE_DIR}/ppocrv5_mobile_det/inference.pdiparams" ]; then
+    echo "Paddle Det Model: READY"
+else
+    echo "Paddle Det Model: MISSING"
+    MISSING=1
+fi
+
+if [ -f "${PADDLE_DIR}/PP-OCRv6_medium_rec/inference.pdiparams" ]; then
+    echo "Paddle Rec Model: READY"
+else
+    echo "Paddle Rec Model: MISSING"
+    MISSING=1
+fi
+
+if [ -f "${YOLO_FILE}" ]; then
+    echo "YOLO Expiry Model: READY"
+else
+    echo "YOLO Expiry Model: MISSING"
+    MISSING=1
+fi
+
+if [ "${MISSING}" -ne 0 ]; then
+    echo "[FATAL] Required model weights are missing. Setup failed." >&2
+    exit 1
+fi
+
+echo "Setup complete. All required model weights are ready in: ${WEIGHTS_DIR}"

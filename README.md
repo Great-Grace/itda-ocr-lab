@@ -53,7 +53,7 @@ python3 scripts/check_submission.py ./submission.csv
    - 모호하거나 미탐지된 샘플에 대해 최신 PP-OCRv6 정밀 전역 추론 수행 (~1.5초).
 3. **Tier 3 (Expert — YOLO Expiry Crop + Dot-Matrix Morphology Recovery)**:
    - 전역 OCR이 실패하는 난해한 15% 샘플(도트매트릭스 잉크젯, 난반사)에만 선택적으로 동작.
-   - YOLOv8n으로 소비기한 ROI를 특정 후, **형태학적 팽창(Morphological Dilation 3×3) 및 CLAHE 대비 강화**를 적용하여 끊어진 잉크 도트를 연결 복원 후 인식.
+   - YOLOv8n으로 소비기한 ROI를 특정 후, **형태학적 팽창(Morphological Dilation 3×3) 및 적응형 명암비 보정(Autocontrast)**을 적용하여 끊어진 잉크 도트를 연결 복원 후 인식.
 4. **Union Spatial Selector & Date Normalizer**:
    - 다중 출처 토큰에 대해 공간적 거리, BBox IoU, 키워드 친화도, 캘린더 타당성을 종합 랭킹.
    - 운영진 9/12 공지에 따라 결측치를 대문자 `NONE`으로 엄격히 단일화하고 2자리 월/일 포맷 보존.
@@ -77,10 +77,10 @@ python3 scripts/check_submission.py ./submission.csv
 - **[1] PP-OCRv3**: C. Li, W. Liu, R. Guo, X. Yin, K. Jiang, Y. Du, et al., *"PP-OCRv3: More Attempts for the Improvement of Ultra Lightweight OCR System"*, arXiv:2206.03001, 2022. [https://arxiv.org/abs/2206.03001](https://arxiv.org/abs/2206.03001)
 - **[2] GTC**: W. Hu, X. Cai, J. Hou, S. Yi, and Z. Lin, *"GTC: Guided Training of CTC Toward Efficient and Accurate Scene Text Recognition"*, AAAI Conference on Human Computation and Crowdsourcing, 2020. [https://arxiv.org/abs/2002.01276](https://arxiv.org/abs/2002.01276)
 - **[3] SVTRv2**: Y. Du, Z. Chen, H. Xie, C. Jia, and Y.-G. Jiang, *"SVTRv2: CTC Beats Encoder-Decoder Models in Scene Text Recognition"*, arXiv:2411.15858, 2024. [https://arxiv.org/abs/2411.15858](https://arxiv.org/abs/2411.15858)
-- **[4] DCTC**: Y. Du et al., *"Framewise Self-Distillation Regularization for Connectionist Temporal Classification"*, Pattern Recognition Letters, 2024.
+- **[4] Digital Image Processing (Contrast & Normalization)**: R. C. Gonzalez and R. E. Woods, *"Digital Image Processing"*, Pearson, 4th ed., 2018. (Adaptive Contrast Enhancement and Intensity Normalization).
 - **[5] BranchyNet**: S. Teerapittayanon, B. McDanel, and H. T. Kung, *"BranchyNet: Fast Inference via Early Exiting from Deep Neural Networks"*, International Conference on Pattern Recognition (ICPR), 2016. [https://arxiv.org/abs/1709.01686](https://arxiv.org/abs/1709.01686)
 - **[6] SkipNet**: X. Wang, F. Yu, Z.-Y. Dou, T. Darrell, and J. E. Gonzalez, *"SkipNet: Learning Dynamic Routing in Convolutional Networks"*, ECCV, 2018. [https://arxiv.org/abs/1711.09485](https://arxiv.org/abs/1711.09485)
 - **[7] PP-OCRv6**: PaddlePaddle Vision Team, *"PP-OCRv6: Real-Time State-of-the-Art OCR Architecture with PPLCNetV4 and RepLKFPN"*, PaddleOCR Release Main Documentation, 2026. [https://www.paddleocr.ai/main/version3.x/algorithm/PP-OCRv6/PP-OCRv6.html](https://www.paddleocr.ai/main/version3.x/algorithm/PP-OCRv6/PP-OCRv6.html)
 - **[8] ONNX Runtime Quantization**: Microsoft Corporation, *"Quantization on CPU: Static and Dynamic Model Optimization Guide"*, ONNX Runtime Performance Documentation, 2024. [https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html](https://onnxruntime.ai/docs/performance/model-optimizations/quantization.html)
-- **[9] ASTER**: B. Shi, M. Yang, X. Wang, P. Lyu, C. Yao, and X. Bai, *"ASTER: An Attentional Scene Text Recognizer with Flexible Rectification"*, IEEE Transactions on Pattern Analysis and Machine Intelligence (TPAMI), vol. 41, no. 9, pp. 2035-2048, 2019. [https://ieeexplore.ieee.org/document/8395027/](https://ieeexplore.ieee.org/document/8395027/)
+- **[9] Mathematical Morphology (Dot-Matrix Text Restoration)**: J. Serra, *"Image Analysis and Mathematical Morphology"*, Academic Press, 1982 / P. Soille, *"Morphological Image Analysis: Principles and Applications"*, Springer, 2nd ed., 2003. (Structuring Element Dilation for Disconnected Dot Restoration).
 - **[10] STR Benchmark**: J. Baek, G. Kim, J. Lee, S. Park, D. Han, S. Yun, S. J. Oh, and H. Lee, *"What Is Wrong With Scene Text Recognition Model Comparisons? Dataset and Model Analysis"*, ICCV, 2019. [https://arxiv.org/abs/1904.01906](https://arxiv.org/abs/1904.01906)

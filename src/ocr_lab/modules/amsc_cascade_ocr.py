@@ -86,6 +86,8 @@ class AMSC_CascadeOCRBackend:
         ):
             if key in params and key not in full_params:
                 full_params[key] = params[key]
+        full_params.setdefault("text_detection_model_name", "PP-OCRv5_mobile_det")
+        full_params.setdefault("text_recognition_model_name", "PP-OCRv6_medium_rec")
         full_params.setdefault("require_local_weights", False)
         self._paddle_backend = PaddleOCRSplitBackend(
             runtime_device=runtime_device,
@@ -96,27 +98,27 @@ class AMSC_CascadeOCRBackend:
         self._yolo = None
         self._yolo_recognizer = None
         yolo_weight = params.get("yolo_weights")
-        if yolo_weight and Path(os.path.expandvars(str(yolo_weight))).is_file():
-            try:
-                from ultralytics import YOLO
-                self._yolo = YOLO(str(os.path.expandvars(str(yolo_weight))))
-                self._yolo_imgsz = int(params.get("yolo_imgsz", 960))
-                self._yolo_conf = float(params.get("yolo_conf", 0.20))
-                self._yolo_expand = float(params.get("yolo_expand", 1.0))
-                self._yolo_margin = int(params.get("yolo_margin", 6))
-                self._yolo_batch_size = max(1, int(params.get("yolo_batch_size", 8)))
+        if yolo_weight:
+            weight_path = Path(os.path.expandvars(str(yolo_weight)))
+            if not weight_path.is_file():
+                raise FileNotFoundError(f"Specified YOLO weights file not found: {weight_path}")
+            from ultralytics import YOLO
+            self._yolo = YOLO(str(weight_path))
+            self._yolo_imgsz = int(params.get("yolo_imgsz", 960))
+            self._yolo_conf = float(params.get("yolo_conf", 0.20))
+            self._yolo_expand = float(params.get("yolo_expand", 1.0))
+            self._yolo_margin = int(params.get("yolo_margin", 6))
+            self._yolo_batch_size = max(1, int(params.get("yolo_batch_size", 8)))
+            self._yolo_max_boxes = max(1, int(params.get("yolo_max_boxes", 4)))
 
-                rec_dir = params.get("yolo_rec_model_dir", full_params.get("text_recognition_model_dir"))
-                rec_name = str(params.get("yolo_rec_model_name", "PP-OCRv6_medium_rec"))
-                from paddleocr import TextRecognition
-                self._yolo_recognizer = TextRecognition(
-                    model_name=rec_name,
-                    model_dir=str(rec_dir) if rec_dir else None,
-                    device=self._device,
-                )
-            except Exception:
-                self._yolo = None
-                self._yolo_recognizer = None
+            rec_dir = params.get("yolo_rec_model_dir", full_params.get("text_recognition_model_dir"))
+            rec_name = str(params.get("yolo_rec_model_name", "PP-OCRv6_medium_rec"))
+            from paddleocr import TextRecognition
+            self._yolo_recognizer = TextRecognition(
+                model_name=rec_name,
+                model_dir=str(rec_dir) if rec_dir else None,
+                device=self._device,
+            )
 
         self.last_stage_metrics: dict[str, Any] = {
             "tier_reached": 1,
@@ -139,8 +141,12 @@ class AMSC_CascadeOCRBackend:
         if not candidates:
             return False
 
-        candidates.sort(key=lambda c: c.score, reverse=True)
+        candidates.sort(
+            key=lambda c: float(c.features.get("recognition_confidence", 0.0)),
+            reverse=True,
+        )
         best = candidates[0]
+        rec_conf = float(best.features.get("recognition_confidence", 0.0))
 
         if (
             best.year
@@ -148,8 +154,9 @@ class AMSC_CascadeOCRBackend:
             and best.day
             and best.calendar_valid
             and (self.calendar_min_year <= int(best.year) <= self.calendar_max_year)
-            and best.score >= self.fast_exit_conf
-            and (has_expiry_kw or not has_negative_kw)
+            and rec_conf >= self.fast_exit_conf
+            and has_expiry_kw
+            and not has_negative_kw
         ):
             return True
 
@@ -216,6 +223,7 @@ class AMSC_CascadeOCRBackend:
         crops: list[np.ndarray] = []
         metas: list[tuple[list[float], float, str]] = []
 
+        detected: list[tuple[float, list[float]]] = []
         for box, cls, conf in zip(
             result.boxes.xyxy.cpu().tolist(),
             result.boxes.cls.cpu().tolist(),
@@ -223,6 +231,13 @@ class AMSC_CascadeOCRBackend:
         ):
             if int(cls) != 0:
                 continue
+            detected.append((float(conf), box))
+
+        # Sort descending by confidence and cap to top K boxes
+        detected.sort(key=lambda item: item[0], reverse=True)
+        detected = detected[: getattr(self, "_yolo_max_boxes", 4)]
+
+        for conf, box in detected:
             left, top, right, bottom = map(float, box)
             cx, cy = (left + right) / 2.0, (top + bottom) / 2.0
             w = (right - left) * self._yolo_expand
@@ -326,28 +341,16 @@ class AMSC_CascadeOCRBackend:
 
         combined_tokens = tier1_tokens + v6_tokens
 
-        if self._has_any_valid_candidate(combined_tokens):
-            total_ms = (time.perf_counter() - total_start) * 1000
-            self.last_stage_metrics = {
-                "tier_reached": 2,
-                "fast_exit_triggered": False,
-                "ocr_ms": total_ms,
-                "rapid_ms": rapid_ms,
-                "v6_ms": v6_ms,
-                "tier3_ms": 0.0,
-            }
-            return combined_tokens
-
         # -------------------------------------------------------------
         # TIER 3: Expiry ROI + Dot-Matrix Morphology Expert
-        # (Only executed when NO candidate was found by Tier 1 & Tier 2)
+        # Runs alongside Tier 2 to form True Full OCR + YOLO Union
         # -------------------------------------------------------------
         tier3_tokens, tier3_ms = self._run_dot_matrix_expert(image, image_path)
         total_tokens = combined_tokens + tier3_tokens
 
         total_ms = (time.perf_counter() - total_start) * 1000
         self.last_stage_metrics = {
-            "tier_reached": 3,
+            "tier_reached": 3 if tier3_tokens else 2,
             "fast_exit_triggered": False,
             "ocr_ms": total_ms,
             "rapid_ms": rapid_ms,
