@@ -46,6 +46,9 @@ def test_submission_notebook_uses_injected_paths() -> None:
     assert "df.to_csv(OUTPUT_PATH, index=False)" in all_code
     assert "AMSC_CascadeOCRBackend" in all_code
     assert "UnionSpatialSelector" in all_code
+    assert '"require_local_weights": True' in all_code
+    assert "required_model_files" in all_code
+    assert "future_date_bonus=0.0" in all_code
 
 
 def test_drive_initializer_creates_manifest(tmp_path: Path) -> None:

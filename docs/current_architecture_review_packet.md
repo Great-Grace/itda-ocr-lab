@@ -66,7 +66,7 @@ Kaggle `kimhyeongminkhu/korean-expiry-date-ocr` v3는 약 2.73GB, 23,386개 파�
 - Detector: `PP-OCRv5_mobile_det`
 - Recognizer: `PP-OCRv6_medium_rec`
 - 원본 이미지를 그대로 입력한다.
-- detector 설정의 대표값: `det_thresh=0.25`, `box_thresh=0.60`, `unclip_ratio=1.8`, max side 960, recognition batch 8.
+- 제출 고정 설정: `det_thresh=0.25`, `box_thresh=0.50`, `unclip_ratio=1.8`, max side 960, recognition batch 1.
 - 한국어 keyword(`소비기한`, `유통기한`, `품질유지기한`, `EXP`, `BEST BEFORE`, `USE BY`, `까지`)와 제조일/LOT 음성어를 token context로 보존한다.
 - 날짜 후보 생성은 OCR 전체 문자열에서 여러 형식을 만들고, calendar validity를 검사한다.
 

@@ -32,6 +32,18 @@ PYTHONPATH=.:src .venv/bin/pytest -q
 .venv/bin/python scripts/validate_submission_readiness.py --sample-input data/sample
 ```
 
+## Final locked-test gate
+
+After the submission revision and weights are frozen, run the notebook once on
+only the isolated test IDs. The runner refuses any split other than
+`data/splits/test.csv`, does not overwrite prior evidence, and records the Git
+revision plus the SHA-256 values of all deployed weights.
+
+```bash
+PYTHONPATH=.:src .venv/bin/python scripts/run_locked_test.py \
+  --images /path/to/competition-images
+```
+
 ## Measured validation gate
 
 The union backend must be added to the measured runner before its result is

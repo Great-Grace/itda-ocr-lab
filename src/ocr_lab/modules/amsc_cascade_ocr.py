@@ -88,7 +88,9 @@ class AMSC_CascadeOCRBackend:
                 full_params[key] = params[key]
         full_params.setdefault("text_detection_model_name", "PP-OCRv5_mobile_det")
         full_params.setdefault("text_recognition_model_name", "PP-OCRv6_medium_rec")
-        full_params.setdefault("require_local_weights", False)
+        # The submission runtime is offline.  Do not let PaddleOCR resolve a
+        # missing model by falling back to its cache or downloader.
+        full_params.setdefault("require_local_weights", True)
         # Expand env vars and validate optional directories
         for key in ("text_detection_model_dir", "text_recognition_model_dir"):
             val = full_params.get(key)
@@ -122,6 +124,11 @@ class AMSC_CascadeOCRBackend:
             rec_dir = os.path.expandvars(str(rec_dir_val)) if rec_dir_val else None
             if rec_dir and not Path(rec_dir).is_dir():
                 rec_dir = None
+            if bool(full_params.get("require_local_weights", True)) and not rec_dir:
+                raise RuntimeError(
+                    "Local PP-OCR recognition weights are required for the YOLO crop branch; "
+                    "set yolo_rec_model_dir to an existing local directory."
+                )
             rec_name = str(params.get("yolo_rec_model_name", "PP-OCRv6_medium_rec"))
             from paddleocr import TextRecognition
             self._yolo_recognizer = TextRecognition(

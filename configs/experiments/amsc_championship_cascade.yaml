@@ -22,7 +22,7 @@ ocr:
     yolo_rec_model_name: PP-OCRv6_medium_rec
     yolo_rec_model_dir: ${ITDA_V6_WEIGHTS_ROOT}
     full_ocr_params:
-      require_local_weights: false
+      require_local_weights: true
       text_detection_model_name: PP-OCRv5_mobile_det
       text_recognition_model_name: PP-OCRv6_medium_rec
       text_detection_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/ppocrv5_mobile_det
