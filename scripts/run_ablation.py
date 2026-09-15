@@ -22,6 +22,8 @@ def main() -> int:
     parser.add_argument("--output", required=True)
     parser.add_argument("--labels")
     parser.add_argument("--max-images", type=int)
+    parser.add_argument("--tokens-cache", help="Reuse OCR tokens from a prior run for selector/normalizer ablations")
+    parser.add_argument("--image-ids-file", help="Optional newline-delimited image stems to evaluate")
     args = parser.parse_args()
 
     base = load_config(args.config)
@@ -41,7 +43,8 @@ def main() -> int:
         for key, value in zip(keys, combination):
             config = set_dotted(config, key, value)
         run_dir = output_root / f"run_{index:03d}"
-        metrics = run_pipeline(config, args.input, run_dir, args.labels, args.max_images)
+        metrics = run_pipeline(config, args.input, run_dir, args.labels, args.max_images,
+                               tokens_cache_path=args.tokens_cache, image_ids_path=args.image_ids_file)
         row = {"run": run_dir.name, **metrics}
         for key, value in zip(keys, combination):
             row[key] = value

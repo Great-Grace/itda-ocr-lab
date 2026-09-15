@@ -1,0 +1,41 @@
+name: B0_LOCAL_SCREEN32_DET_ABLATION
+
+runtime:
+  device: cpu
+  threads: 4
+
+ocr:
+  plugin: paddle_mobile_split
+  params:
+    require_local_weights: true
+    text_detection_model_name: PP-OCRv5_mobile_det
+    text_recognition_model_name: korean_PP-OCRv5_mobile_rec
+    text_detection_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/ppocrv5_mobile_det
+    text_recognition_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/korean_ppocrv5_mobile_rec
+    det_max_side: 1280
+    det_thresh: 0.25
+    box_thresh: 0.50
+    unclip_ratio: 1.8
+    recognition_batch_size: 8
+    fallback_enabled: false
+    engine: paddle
+    enable_mkldnn: false
+
+preprocess:
+  plugin: none
+  params: {}
+
+selector:
+  plugin: keyword_regex
+  params: {}
+
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE
+
+ablation:
+  max_runs: 3
+  grid:
+    ocr.params.det_max_side: [960, 1280, 1536]

@@ -1,0 +1,19 @@
+{
+  "name": "expiry_binary_union_spatial_v2",
+  "provenance": "train_only_fit_on_itda_train_2145",
+  "source_prior": {
+    "baseline": 0.0,
+    "yolo_expiry": 1.5
+  },
+  "candidate_score_weight": 1.5,
+  "recognition_log_weight": 1.5,
+  "detection_log_weight": 0.5,
+  "bbox_iou_weight": 0.5,
+  "due_bonus": 0.0,
+  "validation": {
+    "candidate_recall": 0.8496732026143791,
+    "selection_accuracy_given_candidate": 0.9435897435897436,
+    "final_em": 0.8017429193899782,
+    "images": 459
+  }
+}

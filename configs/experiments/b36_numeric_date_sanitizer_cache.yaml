@@ -1,0 +1,31 @@
+name: B36_NUMERIC_DATE_SANITIZER_CACHE
+runtime:
+  device: cpu
+  threads: 4
+ocr:
+  plugin: paddle_mobile_split
+  params: {}
+preprocess:
+  plugin: none
+  params: {}
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    sanitization_mode: numeric_date
+    keyword_weight: 0.7
+    negative_keyword_weight: 0.45
+    confidence_weight: 0.2
+    detection_confidence_weight: 0.2
+    calendar_weight: 0.5
+    pattern_weight: 0.25
+    position_weight: 0.25
+    partial_date_penalty: 0.45
+    time_like_penalty: 0.60
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE
+    day_missing_token: None

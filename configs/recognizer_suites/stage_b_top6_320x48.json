@@ -1,0 +1,8 @@
+[
+  {"name": "svtr_d128_h8_l4_ctc", "base": "svtr_tiny_ctc", "params": {"d_model": 128, "heads": 8, "layers": 4}},
+  {"name": "svtr_d128_h4_l2_ctc", "base": "svtr_tiny_ctc", "params": {"d_model": 128, "heads": 4, "layers": 2}},
+  {"name": "attn_h96_e64_l2", "base": "crnn_bilstm_attn", "params": {"hidden": 96, "embedding": 64, "encoder_layers": 2}},
+  {"name": "svtr_d64_h4_l1_ctc", "base": "svtr_tiny_ctc", "params": {"d_model": 64, "heads": 4, "layers": 1}},
+  {"name": "attn_h128_e96_l3", "base": "crnn_bilstm_attn", "params": {"hidden": 128, "embedding": 96, "encoder_layers": 3}},
+  {"name": "attn_h64_e48_l1", "base": "crnn_bilstm_attn", "params": {"hidden": 64, "embedding": 48, "encoder_layers": 1}}
+]

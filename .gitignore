@@ -13,3 +13,6 @@ data/*
 !data/sample/
 !data/sample/**
 *.ipynb_checkpoints/
+scratch/
+output/
+tmp/

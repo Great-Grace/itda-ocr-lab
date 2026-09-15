@@ -1,0 +1,52 @@
+name: B3_PARSER_DMY_MONTHNAME_RAW_RULE
+
+runtime:
+  device: cpu
+  threads: 4
+
+ocr:
+  plugin: paddle_mobile_split
+  weight_id: pp-ocrv5-mobile-ko
+  params:
+    require_local_weights: true
+    lang: korean
+    text_detection_model_name: PP-OCRv5_mobile_det
+    text_recognition_model_name: korean_PP-OCRv5_mobile_rec
+    text_detection_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/ppocrv5_mobile_det
+    text_recognition_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/korean_ppocrv5_mobile_rec
+    engine: paddle
+    enable_mkldnn: false
+    use_doc_orientation_classify: false
+    use_doc_unwarping: false
+    use_textline_orientation: false
+
+preprocess:
+  plugin: none
+  params: {}
+
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    keyword_weight: 0.7
+    negative_keyword_weight: 0.45
+    confidence_weight: 0.2
+    detection_confidence_weight: 0.2
+    calendar_weight: 0.5
+    pattern_weight: 0.25
+    position_weight: 0.25
+    keep_invalid: false
+
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE
+
+ablation:
+  max_runs: 8
+  grid:
+    selector.params.keyword_weight: [0.7, 1.1]
+    selector.params.position_weight: [0.25, 0.6]
+    selector.params.negative_keyword_weight: [0.45, 0.7]

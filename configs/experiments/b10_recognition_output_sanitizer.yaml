@@ -1,0 +1,31 @@
+name: B10_RECOGNITION_OUTPUT_SANITIZER
+
+runtime:
+  device: cpu
+  threads: 4
+
+ocr:
+  plugin: paddle_mobile_split
+  params: {}
+
+preprocess:
+  plugin: none
+  params: {}
+
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    sanitization_mode: none
+
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE
+
+ablation:
+  max_runs: 3
+  grid:
+    selector.params.sanitization_mode: [none, soft, date_context]

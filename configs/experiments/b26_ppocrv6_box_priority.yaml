@@ -1,0 +1,38 @@
+name: B26_PPOCRV6_BOX_PRIORITY_CAP12
+runtime:
+  device: cpu
+  threads: 4
+ocr:
+  plugin: paddle_mobile_split
+  weight_id: pp-ocrv6-medium-rec-official
+  params:
+    require_local_weights: true
+    text_detection_model_name: PP-OCRv5_mobile_det
+    text_recognition_model_name: PP-OCRv6_medium_rec
+    text_detection_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/ppocrv5_mobile_det
+    text_recognition_model_dir: /Users/taewoo/.paddlex/official_models/PP-OCRv6_medium_rec
+    det_max_side: 960
+    det_thresh: 0.25
+    box_thresh: 0.50
+    unclip_ratio: 1.8
+    recognition_batch_size: 1
+    box_priority: aspect_desc
+    max_recognition_boxes: 12
+    fallback_enabled: false
+    engine: paddle
+    enable_mkldnn: false
+preprocess:
+  plugin: none
+  params: {}
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    partial_date_penalty: 0.45
+    time_like_penalty: 0.60
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE

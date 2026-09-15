@@ -1,0 +1,37 @@
+name: B6_PPOCRV6_HEIGHT48_PROBE
+
+runtime:
+  device: cpu
+  threads: 4
+
+ocr:
+  plugin: paddle_mobile_split
+  weight_id: pp-ocrv6-medium-rec
+  params:
+    require_local_weights: false
+    text_detection_model_name: PP-OCRv5_mobile_det
+    text_recognition_model_name: PP-OCRv6_medium_rec
+    text_detection_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/ppocrv5_mobile_det
+    text_recognition_model_dir: null
+    input_shape: [3, 48, 320]
+    engine: paddle
+    enable_mkldnn: false
+    use_doc_orientation_classify: false
+    use_doc_unwarping: false
+    use_textline_orientation: false
+
+preprocess:
+  plugin: none
+  params: {}
+
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE

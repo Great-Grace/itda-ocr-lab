@@ -1,0 +1,22 @@
+name: B21_NO_PARTIAL_PENALTY
+runtime:
+  device: cpu
+  threads: 4
+ocr:
+  plugin: paddle_mobile_split
+  params: {}
+preprocess:
+  plugin: none
+  params: {}
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    partial_date_penalty: 0.0
+    time_like_penalty: 0.0
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE

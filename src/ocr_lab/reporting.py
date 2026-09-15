@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .modules.date_candidates import parse_final_date
+
 
 def generate_reports(
     run_dir: Path,
@@ -29,7 +31,7 @@ def generate_reports(
         gt = labels.get(img_id, "N/A")
         pred = r["final_date"]
         if gt != "N/A":
-            is_correct = pred == gt
+            is_correct = pred == gt or parse_final_date(pred) == parse_final_date(gt)
         else:
             is_correct = None
         row_copy = dict(r)
@@ -55,8 +57,14 @@ def _write_team_report(path: Path, metrics: dict[str, Any], rows: list[dict[str,
         "## Results",
         f"- Images: {metrics.get('image_count', len(rows))}",
         f"- Exact-match: {metrics.get('final_date_exact_match', 'N/A')}",
+        f"- Candidate recall: {metrics.get('candidate_recall', 'N/A')}",
+        f"- Candidate selection accuracy: {metrics.get('candidate_selection_accuracy', 'N/A')}",
+        f"- CER: {metrics.get('recognition_metrics', {}).get('cer', 'N/A')}",
         f"- Mean latency: {metrics.get('latency_ms_mean', 'N/A')} ms",
         f"- P95 latency: {metrics.get('latency_ms_p95', 'N/A')} ms",
+        f"- Throughput: {metrics.get('images_per_sec', 'N/A')} images/sec",
+        f"- Peak RAM: {metrics.get('peak_ram_mb', 'N/A')} MB",
+        f"- Model size: {metrics.get('model_weight_mb', 'N/A')} MB",
         f"- NONE rate: {metrics.get('none_rate', 'N/A')}",
         "",
         "## Architecture",
@@ -74,6 +82,10 @@ def _write_team_report(path: Path, metrics: dict[str, Any], rows: list[dict[str,
         lines.extend(["", "## Runtime", f"- `{json.dumps(runtime, ensure_ascii=False, separators=(',', ':'))}`"])
     failures = [row for row in rows if row.get("is_correct") is False]
     lines.extend(["", "## Failure summary", f"- Incorrect labeled samples: {len(failures)}"])
+    if metrics.get("error_categories"):
+        lines.extend(["", "## Error categories"])
+        for category, values in metrics["error_categories"].items():
+            lines.append(f"- {category}: {values.get('count', 0)} ({values.get('ratio', 0.0):.3f})")
     for row in failures[:5]:
         lines.append(f"- `{row['image_id']}`: expected `{row['ground_truth']}`, got `{row['final_date']}`; candidate `{row['candidate']}`")
     lines.extend(["", "Detailed artifacts: `architecture.md`, `summary.md`, `review.html`, `review.csv`, `metrics.json`."])
@@ -98,10 +110,22 @@ def _write_summary_md(path: Path, metrics: dict[str, Any], rows: list[dict[str, 
         ])
     lines.extend([
         f"| **Mean Latency** | {metrics.get('latency_ms_mean', 0.0):.2f} ms |",
+        f"| **Median Latency** | {metrics.get('latency_ms_median', 0.0):.2f} ms |",
         f"| **P95 Latency** | {metrics.get('latency_ms_p95', 0.0):.2f} ms |",
+        f"| **Throughput** | {metrics.get('images_per_sec', 0.0):.3f} images/sec |",
+        f"| **Peak RAM** | {metrics.get('peak_ram_mb', 'N/A')} MB |",
+        f"| **Model Size** | {metrics.get('model_weight_mb', 'N/A')} MB |",
+        f"| **Candidate Recall** | {metrics.get('candidate_recall', 'N/A')} |",
+        f"| **Candidate Selection Accuracy** | {metrics.get('candidate_selection_accuracy', 'N/A')} |",
+        f"| **CER** | {metrics.get('recognition_metrics', {}).get('cer', 'N/A')} |",
         f"| **NONE Prediction Rate** | {metrics.get('none_rate', 0.0) * 100:.2f}% |",
         "",
     ])
+    if metrics.get("error_categories"):
+        lines.extend(["## Error Categories", "", "| Error Type | Count | Ratio |", "|---|---:|---:|"])
+        for category, values in metrics["error_categories"].items():
+            lines.append(f"| {category} | {values.get('count', 0)} | {values.get('ratio', 0.0):.3f} |")
+        lines.append("")
 
     # Highlight failures
     failures = [r for r in rows if r["is_correct"] is False]
@@ -197,6 +221,7 @@ def _write_review_html(path: Path, metrics: dict[str, Any], rows: list[dict[str,
         <th>Candidate</th>
         <th>Confidence</th>
         <th>Latency</th>
+        <th>Error Category</th>
         <th>OCR Text Snippet</th>
       </tr>
     </thead>
@@ -248,6 +273,7 @@ def _write_review_html(path: Path, metrics: dict[str, Any], rows: list[dict[str,
         <td>${{escapeHtml(row.candidate)}}</td>
         <td>${{(row.confidence || 0).toFixed(2)}}</td>
         <td>${{row.elapsed_ms}} ms</td>
+        <td>${{escapeHtml(row.error_category || '-')}}</td>
         <td class="ocr-preview" title="${{escapeHtml(row.ocr_text || '')}}">${{escapeHtml(row.ocr_text || '-')}}</td>
       `;
       tbody.appendChild(tr);

@@ -1,0 +1,5 @@
+[
+  {"name": "svtr_d128_h8_l4_ctc", "base": "svtr_tiny_ctc", "params": {"d_model": 128, "heads": 8, "layers": 4}},
+  {"name": "attn_h96_e64_l2", "base": "crnn_bilstm_attn", "params": {"hidden": 96, "embedding": 64, "encoder_layers": 2}},
+  {"name": "attn_h128_e96_l3", "base": "crnn_bilstm_attn", "params": {"hidden": 128, "embedding": 96, "encoder_layers": 3}}
+]

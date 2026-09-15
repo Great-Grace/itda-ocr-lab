@@ -4,3 +4,9 @@ Pillow>=10.0
 pytest>=8.0
 nbconvert>=7.0
 ipykernel>=6.0
+psutil>=5.9
+rapidocr-onnxruntime>=1.0.7
+paddlepaddle==3.3.0
+paddleocr==3.7.0
+paddlex[ocr-core]==3.7.2
+ultralytics==8.4.150

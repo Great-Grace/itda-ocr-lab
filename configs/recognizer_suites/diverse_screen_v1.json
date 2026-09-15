@@ -1,0 +1,32 @@
+[
+  {"name": "cnn_h64_ctc", "base": "cnn_ctc", "params": {"hidden": 64}},
+  {"name": "cnn_h96_ctc", "base": "cnn_ctc", "params": {"hidden": 96}},
+  {"name": "cnn_h128_ctc", "base": "cnn_ctc", "params": {"hidden": 128}},
+
+  {"name": "crnn_lstm_h64_l1_ctc", "base": "crnn_bilstm_ctc", "params": {"hidden": 64, "layers": 1}},
+  {"name": "crnn_lstm_h96_l2_ctc", "base": "crnn_bilstm_ctc", "params": {"hidden": 96, "layers": 2}},
+  {"name": "crnn_lstm_h128_l3_ctc", "base": "crnn_bilstm_ctc", "params": {"hidden": 128, "layers": 3}},
+  {"name": "crnn_gru_h64_l1_ctc", "base": "crnn_bigru_ctc", "params": {"hidden": 64, "layers": 1}},
+  {"name": "crnn_gru_h96_l2_ctc", "base": "crnn_bigru_ctc", "params": {"hidden": 96, "layers": 2}},
+  {"name": "crnn_gru_h128_l3_ctc", "base": "crnn_bigru_ctc", "params": {"hidden": 128, "layers": 3}},
+
+  {"name": "mobile_h64_ctc", "base": "mobilenetv3_ctc", "params": {"hidden": 64}},
+  {"name": "mobile_h96_ctc", "base": "mobilenetv3_ctc", "params": {"hidden": 96}},
+  {"name": "mobile_h128_ctc", "base": "mobilenetv3_ctc", "params": {"hidden": 128}},
+  {"name": "mobile_lstm_h64_l1_ctc", "base": "mobilenetv3_bilstm_ctc", "params": {"hidden": 64, "rnn_layers": 1}},
+  {"name": "mobile_lstm_h96_l2_ctc", "base": "mobilenetv3_bilstm_ctc", "params": {"hidden": 96, "rnn_layers": 2}},
+  {"name": "mobile_lstm_h128_l3_ctc", "base": "mobilenetv3_bilstm_ctc", "params": {"hidden": 128, "rnn_layers": 3}},
+
+  {"name": "resnet_h64_l1_ctc", "base": "resnet18_bilstm_ctc", "params": {"hidden": 64, "rnn_layers": 1}},
+  {"name": "resnet_h96_l2_ctc", "base": "resnet18_bilstm_ctc", "params": {"hidden": 96, "rnn_layers": 2}},
+  {"name": "resnet_h128_l3_ctc", "base": "resnet18_bilstm_ctc", "params": {"hidden": 128, "rnn_layers": 3}},
+
+  {"name": "svtr_d64_h4_l1_ctc", "base": "svtr_tiny_ctc", "params": {"d_model": 64, "heads": 4, "layers": 1}},
+  {"name": "svtr_d96_h4_l2_ctc", "base": "svtr_tiny_ctc", "params": {"d_model": 96, "heads": 4, "layers": 2}},
+  {"name": "svtr_d128_h4_l2_ctc", "base": "svtr_tiny_ctc", "params": {"d_model": 128, "heads": 4, "layers": 2}},
+  {"name": "svtr_d128_h8_l4_ctc", "base": "svtr_tiny_ctc", "params": {"d_model": 128, "heads": 8, "layers": 4}},
+
+  {"name": "attn_h64_e48_l1", "base": "crnn_bilstm_attn", "params": {"hidden": 64, "embedding": 48, "encoder_layers": 1}},
+  {"name": "attn_h96_e64_l2", "base": "crnn_bilstm_attn", "params": {"hidden": 96, "embedding": 64, "encoder_layers": 2}},
+  {"name": "attn_h128_e96_l3", "base": "crnn_bilstm_attn", "params": {"hidden": 128, "embedding": 96, "encoder_layers": 3}}
+]

@@ -1,0 +1,22 @@
+name: B14_SVTR_SOURCE_PRIOR
+runtime:
+  device: cpu
+  threads: 4
+ocr:
+  plugin: paddle_mobile_split
+  params: {}
+preprocess:
+  plugin: none
+  params: {}
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    source_confidence_multipliers:
+      svtr_local_roi: 0.25
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE

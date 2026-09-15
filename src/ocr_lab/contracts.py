@@ -10,6 +10,11 @@ class OCRToken:
     confidence: float = 0.0
     bbox: Optional[tuple[float, float, float, float]] = None
     extras: dict[str, Any] = field(default_factory=dict)
+    # PaddleOCR exposes recognition confidence on every token and detection
+    # confidence on newer result objects.  Keep the two signals separate so
+    # selectors can diagnose detection vs. recognition without breaking the
+    # existing sidecar/cache contract.
+    detection_confidence: Optional[float] = None
 
 
 @dataclass
@@ -19,6 +24,12 @@ class DateCandidate:
     score: float = 0.0
     evidence: list[str] = field(default_factory=list)
     token_indices: list[int] = field(default_factory=list)
+    year: Optional[str] = None
+    month: Optional[str] = None
+    day: Optional[str] = None
+    calendar_valid: bool = False
+    pattern: str = ""
+    features: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -30,4 +41,3 @@ class Prediction:
     final_date: str = "NONE"
     confidence: float = 0.0
     evidence: list[str] = field(default_factory=list)
-

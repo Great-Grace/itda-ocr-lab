@@ -1,0 +1,65 @@
+name: current-sota-union
+runtime:
+  device: cpu
+  threads: 4
+  max_gpu_hours: 2
+  extra_requirements: [ultralytics]
+ocr:
+  plugin: paddle_yolo_union
+  weight_id: ppocrv6-medium-rec-official + expiry-binary-yolov8n
+  params:
+    yolo_weights: ${ITDA_YOLO_WEIGHTS}
+    yolo_imgsz: 960
+    yolo_conf: 0.20
+    yolo_classes: "0"
+    yolo_expand: 1.0
+    yolo_margin: 6
+    yolo_batch_size: 8
+    yolo_rec_model_name: PP-OCRv6_medium_rec
+    yolo_rec_model_dir: ${ITDA_V6_WEIGHTS_ROOT}
+    full_ocr_params:
+      require_local_weights: true
+      text_detection_model_name: PP-OCRv5_mobile_det
+      text_recognition_model_name: PP-OCRv6_medium_rec
+      text_detection_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/ppocrv5_mobile_det
+      text_recognition_model_dir: ${ITDA_V6_WEIGHTS_ROOT}
+      det_max_side: 960
+      det_thresh: 0.25
+      box_thresh: 0.50
+      unclip_ratio: 1.8
+      recognition_batch_size: 1
+      fallback_enabled: false
+      engine: paddle
+      enable_mkldnn: false
+preprocess:
+  plugin: none
+  params: {}
+selector:
+  plugin: union_spatial
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    keyword_weight: 0.7
+    negative_keyword_weight: 0.45
+    confidence_weight: 0.2
+    detection_confidence_weight: 0.2
+    calendar_weight: 0.5
+    pattern_weight: 0.25
+    position_weight: 0.25
+    partial_date_penalty: 0.45
+    time_like_penalty: 0.60
+    future_date_bonus: 0.0
+    yolo_bonus: 1.5
+    candidate_score_weight: 1.5
+    recognition_log_weight: 1.5
+    detection_log_weight: 0.5
+    bbox_iou_weight: 0.5
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NONE
+    none_token: NONE
+    day_missing_token: NONE
+ablation:
+  max_runs: 8
+  grid: {}

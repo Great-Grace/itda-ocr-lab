@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ITDA OCR Lab — 소비기한 날짜 추출 내부 SOTA 검증 보고서</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>
+    :root {
+      --primary-dark: #0f172a;
+      --primary-navy: #1e293b;
+      --primary-blue: #2563eb;
+      --primary-blue-light: #3b82f6;
+      --accent-teal: #0d9488;
+      --accent-teal-light: #14b8a6;
+      --accent-cyan: #06b6d4;
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --border-color: #e2e8f0;
+      --border-subtle: #f1f5f9;
+      --badge-bg: #eff6ff;
+      --badge-text: #1d4ed8;
+      --gpu-tag: #8b5cf6;
+      --cpu-tag: #0284c7;
+      --warning-red: #e11d48;
+      --warning-bg: #fff1f2;
+      --success-green: #059669;
+      --success-bg: #ecfdf5;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.55;
+      font-size: 13.5px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .report-container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    /* Print & Page Break Control */
+    @page {
+      size: A4 portrait;
+      margin: 10mm 10mm;
+    }
+
+    @media print {
+      body {
+        background-color: #ffffff;
+        font-size: 11.5px;
+        line-height: 1.45;
+      }
+      .report-container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+      .no-break {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .section-card {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        padding: 16px 20px !important;
+        margin-bottom: 14px !important;
+      }
+      .cover-container {
+        padding: 40px 32px !important;
+        margin-bottom: 0 !important;
+      }
+      .cover-title {
+        font-size: 30px !important;
+      }
+      .cover-subtitle {
+        font-size: 15px !important;
+        margin-bottom: 20px !important;
+      }
+      .cover-kpi-banner {
+        padding: 14px !important;
+        margin-bottom: 20px !important;
+      }
+      .kpi-value {
+        font-size: 24px !important;
+      }
+    }
+
+    /* Cover Page */
+    .cover-container {
+      background: linear-gradient(145deg, #0f172a 0%, #1e293b 60%, #1e3a8a 100%);
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 50px 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .cover-container::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(20, 184, 166, 0.15) 0%, rgba(20, 184, 166, 0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .cover-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+      color: #38bdf8;
+    }
+
+    .cover-title {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    .cover-subtitle {
+      font-size: 16.5px;
+      color: #cbd5e1;
+      font-weight: 400;
+      max-width: 740px;
+      margin-bottom: 28px;
+      line-height: 1.45;
+    }
+
+    .cover-kpi-banner {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 18px;
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      margin-bottom: 26px;
+    }
+
+    .kpi-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .kpi-label {
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-bottom: 3px;
+      font-weight: 500;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+
+    .kpi-value.highlight {
+      color: #2dd4bf;
+    }
+
+    .kpi-unit {
+      font-size: 14px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+
+    .kpi-desc {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .cover-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      color: #94a3b8;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding-top: 16px;
+    }
+
+    .cover-meta span strong {
+      color: #e2e8f0;
+    }
+
+    /* Section Cards */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 8px;
+    }
+
+    .section-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-num {
+      background: var(--primary-navy);
+      color: #ffffff;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 5px;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      letter-spacing: -0.3px;
+    }
+
+    .section-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    /* Text & Callouts */
+    p {
+      margin-bottom: 10px;
+      color: #334155;
+    }
+
+    .callout {
+      background: #f8fafc;
+      border-left: 4px solid var(--primary-blue);
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+
+    .callout.warning {
+      background: #fffbeb;
+      border-left-color: #f59e0b;
+      color: #92400e;
+    }
+
+    .callout.alert {
+      background: var(--warning-bg);
+      border-left-color: var(--warning-red);
+      color: #9f1239;
+    }
+
+    .callout.success {
+      background: var(--success-bg);
+      border-left-color: var(--success-green);
+      color: #065f46;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 10px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+      .cover-container {
+        padding: 28px 18px;
+      }
+      .cover-title {
+        font-size: 24px;
+      }
+      .cover-kpi-banner {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Feature Box */
+    .feature-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 14px;
+      position: relative;
+    }
+
+    .feature-box.highlight {
+      background: #f0fdfa;
+      border-color: #99f6e4;
+    }
+
+    .feature-box-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .feature-box-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Tables */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      margin: 10px 0;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: var(--primary-navy);
+      font-weight: 700;
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border-color);
+      color: #334155;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr.highlight-row {
+      background: #f0fdfa;
+      font-weight: 600;
+    }
+
+    tr.highlight-row td {
+      color: #0f766e;
+    }
+
+    tr.subtle-row {
+      background: #fafafa;
+      color: #64748b;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    /* Tag styles */
+    .tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .tag-gpu {
+      background: #ede9fe;
+      color: #6d28d9;
+      border: 1px solid #ddd6fe;
+    }
+
+    .tag-cpu {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+
+    .tag-sota {
+      background: #ccfbf1;
+      color: #0f766e;
+      border: 1px solid #99f6e4;
+    }
+
+    .tag-invalid {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    /* Architecture Flow Diagram */
+    .arch-diagram-wrapper {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 12px 0;
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 180px 24px 1fr 24px 190px;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (max-width: 900px) {
+      .arch-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .arch-connector {
+        transform: rotate(90deg);
+      }
+    }
+
+    .arch-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .arch-node {
+      background: #ffffff;
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      padding: 9px 11px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .arch-node.input-node {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+
+    .arch-node.branch-a {
+      border-color: #6366f1;
+      background: #eef2ff;
+    }
+
+    .arch-node.branch-b {
+      border-color: #0d9488;
+      background: #f0fdfa;
+    }
+
+    .arch-node.union-node {
+      border-color: #2563eb;
+      background: #f8fafc;
+      box-shadow: 0 3px 8px rgba(37, 99, 235, 0.08);
+    }
+
+    .arch-node.output-node {
+      border-color: #10b981;
+      background: #ecfdf5;
+    }
+
+    .arch-node-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .arch-node-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .arch-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    /* Bar Charts */
+    .chart-box {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 10px 0 0 0;
+    }
+
+    .chart-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .chart-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .chart-split-info {
+      font-size: 11px;
+      color: var(--text-light);
+    }
+
+    .bar-chart-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+
+    .bar-label {
+      width: 210px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--primary-navy);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 18px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 6px;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .bar-fill.blue {
+      background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    }
+
+    .bar-fill.teal {
+      background: linear-gradient(90deg, #14b8a6, #0f766e);
+    }
+
+    .bar-fill.slate {
+      background: linear-gradient(90deg, #94a3b8, #64748b);
+    }
+
+    .bar-val-text {
+      width: 55px;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-align: right;
+      color: var(--primary-dark);
+    }
+
+    /* Bottleneck Funnel Flow */
+    .funnel-container {
+      display: flex;
+      gap: 8px;
+      margin: 12px 0;
+      align-items: stretch;
+    }
+
+    .funnel-step {
+      flex: 1;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .funnel-step.danger {
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+
+    .funnel-step.success {
+      border-color: #a7f3d0;
+      background: #f0fdf4;
+    }
+
+    .funnel-header {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .funnel-stat {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary-dark);
+      line-height: 1.1;
+      margin-bottom: 2px;
+    }
+
+    .funnel-stat.danger-color {
+      color: #b91c1c;
+    }
+
+    .funnel-stat.success-color {
+      color: #047857;
+    }
+
+    .funnel-footer {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      padding-top: 5px;
+      margin-top: 8px;
+    }
+
+    /* Evidence Cards */
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin: 10px 0 0 0;
+    }
+
+    .evidence-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 9px 11px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .evidence-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed var(--border-color);
+    }
+
+    .evidence-id {
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--primary-navy);
+    }
+
+    .evidence-row {
+      display: flex;
+      font-size: 11px;
+      margin-bottom: 3px;
+    }
+
+    .evidence-key {
+      width: 60px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .evidence-val {
+      flex: 1;
+      font-weight: 600;
+      color: var(--primary-dark);
+      word-break: break-all;
+    }
+
+    .evidence-tag {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+
+    .evidence-tag.pass {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .evidence-tag.fail {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    /* Footer Note */
+    .report-footer {
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-color);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .footer-stamp {
+      font-family: monospace;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="report-container">
+
+  <!-- ==================== 1. 표지 (Cover Page) ==================== -->
+  <div class="cover-container no-break">
+    <div class="cover-badge">
+      <span>● ITDA OCR Lab Technical Validation Report</span>
+    </div>
+    <h1 class="cover-title">소비기한 날짜 추출 실험<br>현재 SOTA 검증 보고서</h1>
+    <p class="cover-subtitle">
+      Kaggle 영역 라벨 기반 YOLOv8n Expiry Detector와 Full-Image PP-OCRv6의 Dual-Branch 결합 및 공간 정밀 Selector 검증 결과
+    </p>
+
+    <div class="cover-kpi-banner">
+      <div class="kpi-item">
+        <span class="kpi-label">최고 실측 정확도 (Final EM)</span>
+        <div class="kpi-value highlight">
+          80.61<span class="kpi-unit">%</span>
+        </div>
+        <span class="kpi-desc">ITDA 내부 Validation (459장)</span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">날짜 후보 검출률 (Recall)</span>
+        <div class="kpi-value">
+          85.19<span class="kpi-unit">%</span>
+        </div>
+        <span class="kpi-desc">Dual Branch 결합 후 도달</span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">후보 존재 시 선택 정확도</span>
+        <div class="kpi-value">
+          94.63<span class="kpi-unit">%</span>
+        </div>
+        <span class="kpi-desc">Train-fit Spatial Selector</span>
+      </div>
+
+      <div class="kpi-item">
+        <span class="kpi-label">단독 Full OCR 대비 상승폭</span>
+        <div class="kpi-value highlight">
+          +8.93<span class="kpi-unit">%p</span>
+        </div>
+        <span class="kpi-desc">71.68% → 80.61% 대폭 개선</span>
+      </div>
+    </div>
+
+    <div class="cover-meta">
+      <span><strong>검증 평가 대상:</strong> ITDA Validation Split 459장 전수 평가 (Test Split 459장은 완전 잠금 및 미사용)</span>
+      <span><strong>평가 환경 및 시점:</strong> Colab T4 Fresh Execution (2026-09-14 실측 데이터 기준)</span>
+      <span><strong>성능 공표 지침:</strong> 외부 학술 SOTA가 아닌 <em>"ITDA 내부 validation 기준 최고 실측 결과"</em>로 표현 규정</span>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== 2. Executive Summary & 3. 제약 사항 ==================== -->
+  <div class="section-card no-break">
+    <div class="section-header">
+      <div class="section-title-group">
+        <div class="section-num">01</div>
+        <h2 class="section-title">Executive Summary (핵심 브리핑)</h2>
+      </div>
+      <span class="section-badge">경영진 및 비개발자 요약</span>
+    </div>
+
+    <p>
+      본 보고서는 <strong>ITDA OCR Challenge(식품 유통·소비기한 자동 추출)</strong> 과제에서 개발된 인공지능 파이프라인의 최고 성능 구조와 전체 실험 분석 결과를 다룹니다. 복잡한 수식 대신 <em>"어떻게 글자를 찾고, 어떻게 진짜 소비기한을 고르는가"</em>를 명확한 실측 수치와 함께 정리했습니다.
+    </p>
+
+    <div class="grid-4">
+      <div class="feature-box highlight">
+        <div class="feature-box-title">🏆 최고 성능 달성 구조</div>
+        <div class="feature-box-desc">
+          <strong>Full OCR + YOLO Dual-Branch Union</strong><br>
+          전체 사진을 넓게 보는 시야(Branch A)와 소비기한 영역만 정밀하게 확대하는 돋보기(Branch B)를 합친 이중화 앙상블 구조
+        </div>
+      </div>
+
+      <div class="feature-box highlight">
+        <div class="feature-box-title">📊 검증된 최고 실측 성능</div>
+        <div class="feature-box-desc">
+          <strong>Final Exact Match 80.61%</strong><br>
+          내부 validation(459장) 기준 기존 베이스라인(71.68%) 대비 <strong>+8.93%p</strong> 향상. (※ 학술 논문이나 외부 세계 SOTA가 아닌 ITDA 내부 실측치)
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">🔍 현재 가장 큰 병목</div>
+        <div class="feature-box-desc">
+          <strong>인식 단계 후보 누락 (Recall 85.19%)</strong><br>
+          일단 후보 목록에 정답 날짜가 들어오면 <strong>94.63%</strong> 확률로 정확히 골라냅니다. 즉, 잘못 고르는 것보다 <em>처음에 글씨를 못 읽어오는 것</em>이 주 원인입니다.
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">🚀 차기 집중 개선 영역</div>
+        <div class="feature-box-desc">
+          <strong>Dual Crop & Line Reconstruction</strong><br>
+          글자가 잘리거나 위아래로 나뉜 날짜("2026."과 "05.12")를 재조합하는 텍스트 결합 로직 및 4-core CPU 최적화에 집중합니다.
+        </div>
+      </div>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-title">💡 핵심 인사이트</div>
+      "YOLO 날짜 검출기 단독으로는 문맥(제조일자 구별 등)을 잃어버려 성능이 67.76%로 떨어집니다. 반면 전체 OCR과 결합했을 때 비로소 <strong>80.61%</strong>라는 내부 최고 기록이 완성되었습니다. 이는 YOLO를 '대체 모델'이 아니라 '보조 탐색기'로 썼을 때 진정한 시너지가 난다는 것을 실증합니다."
+    </div>
+  </div>
+
+  <div class="section-card no-break">
+    <div class="section-header">
+      <div class="section-title-group">
+        <div class="section-num">02</div>
+        <h2 class="section-title">문제 정의와 대회 실행 제약</h2>
+      </div>
+      <span class="section-badge">엄격한 개발 규칙</span>
+    </div>
+
+    <p>
+      실제 제품에 인쇄된 소비기한은 폰트가 규격화되어 있지 않고, 비닐의 구김, 조명 반사, 제조일자나 바코드와의 혼재 등 현실적인 방해 요소가 극심합니다. 본 대회는 현실 배포 환경을 상정하여 다음과 같은 엄격한 3대 제약 조건을 요구합니다.
+    </p>
+
+    <div class="grid-3">
+      <div class="feature-box">
+        <div class="feature-box-title">1. CPU-Only (4-Core 타겟)</div>
+        <div class="feature-box-desc">
+          제출 및 최종 평가는 GPU가 없는 순수 4-core CPU 서버에서 수행됩니다. 모델 크기와 연산량이 작아야 하며, 메모리 누수가 없어야 합니다.
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">2. 완전한 오프라인 추론</div>
+        <div class="feature-box-desc">
+          추론 시 인터넷 연결, 외부 API 호출, 원격 대규모 언어모델(GPT-4, Gemini 등) 연동이 원천 금지됩니다. 로컬 경량 모델만 구동 가능합니다.
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">3. Test Split 철저 잠금</div>
+        <div class="feature-box-desc">
+          데이터 오염(Data Leakage)을 방지하기 위해 459장의 Test Split은 모델 튜닝에 절대 사용하지 않았으며, 오직 고정된 Validation(459장)으로만 검증했습니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== 4. 데이터와 라벨 계보 ==================== -->
+  <div class="section-card no-break">
+    <div class="section-header">
+      <div class="section-title-group">
+        <div class="section-num">03</div>
+        <h2 class="section-title">데이터셋 구성 및 라벨 계보 (Provenance)</h2>
+      </div>
+      <span class="section-badge">데이터 과학적 근거</span>
+    </div>
+
+    <p>
+      데이터 출처와 중복 여부를 수학적 해시(CRC32/SHA-256) 검증을 통해 철저히 감사했습니다. Kaggle 데이터셋과 ITDA 대회 드라이브의 관계를 규명한 것이 성능 도약의 열쇠가 되었습니다.
+    </p>
+
+    <div class="grid-2">
+      <div>
+        <table style="margin-top:0;">
+          <thead>
+            <tr>
+              <th>구분</th>
+              <th class="text-right">이미지 수</th>
+              <th>설명 및 무결성 검증</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>ITDA 원본 이미지</strong></td>
+              <td class="text-right"><strong>3,352장</strong></td>
+              <td>대회 제공 원본 상품 이미지 풀</td>
+            </tr>
+            <tr>
+              <td><strong>Gemini-filtered 라벨</strong></td>
+              <td class="text-right"><strong>3,063장</strong></td>
+              <td>품질 검증을 통과한 유효 정답셋</td>
+            </tr>
+            <tr>
+              <td>- Train Split</td>
+              <td class="text-right">2,145장</td>
+              <td>모델 학습 및 Selector 가중치 피팅</td>
+            </tr>
+            <tr>
+              <td>- Validation Split</td>
+              <td class="text-right">459장</td>
+              <td>모든 벤치마크 실측 기준 (N=459)</td>
+            </tr>
+            <tr>
+              <td>- Test Split</td>
+              <td class="text-right">459장</td>
+              <td>최종 제출 평가용 완전 비공개 잠금</td>
+            </tr>
+            <tr class="subtle-row">
+              <td><strong>Split 간 파일명 중복</strong></td>
+              <td class="text-right"><strong>0장 (Disjoint)</strong></td>
+              <td>물리적 분리 및 데이터 누출 0% 확인</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="feature-box highlight">
+        <div class="feature-box-title">💡 Kaggle 데이터셋의 진정한 효과 분석</div>
+        <div class="feature-box-desc">
+          Kaggle의 <em>Korean Product Expiration Date Dataset</em>을 전수 조사한 결과, 대회 드라이브의 3,352장과 <strong>완전히 동일한 사진</strong>(3,343장 파일명 동일 + 9장 카카오톡 파일명 변경, 바이트 CRC32 일치)임이 확인되었습니다.<br><br>
+          <strong>결정적 발견:</strong><br>
+          Kaggle 데이터셋을 활용해 성능이 오른 이유는 "새로운 이미지가 추가되어서"가 아니라, 기존 사진 속 <strong>날짜 위치(date/due box) 좌표 라벨</strong>이 추가로 확보되어 정밀한 YOLO Detector를 학습시킬 수 있었기 때문입니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 5. 상세 아키텍처 도식 ==================== -->
+  <div class="section-card no-break">
+    <div class="section-header">
+      <div class="section-title-group">
+        <div class="section-num">04</div>
+        <h2 class="section-title">Dual-Branch SOTA 아키텍처</h2>
+      </div>
+      <span class="section-badge">ITDA 내부 최고 80.61% 파이프라인</span>
+    </div>
+
+    <p>
+      본 파이프라인은 <strong>문맥을 유지하는 전체 OCR(Branch A)</strong>과 <strong>소비기한 영역을 정밀 확대하는 YOLO Detector(Branch B)</strong>를 병렬로 운영한 후, 지능형 앙상블 Selector를 통해 최종 날짜를 확정합니다.
+    </p>
+
+    <!-- Architecture Flow Diagram -->
+    <div class="arch-diagram-wrapper">
+      <div class="arch-grid">
+        <!-- Input -->
+        <div class="arch-col">
+          <div class="arch-node input-node">
+            <div class="arch-node-title">
+              <span>원본 상품 이미지</span>
+              <span class="tag tag-cpu">Input</span>
+            </div>
+            <div class="arch-node-desc">해상도 유지 입력<br>A4/식품 포장재 사진</div>
+          </div>
+        </div>
+
+        <div class="arch-connector">➔</div>
+
+        <!-- Two Branches -->
+        <div class="arch-col">
+          <div class="arch-node branch-a">
+            <div class="arch-node-title">
+              <span>Branch A: Full-Image OCR</span>
+              <span class="tag tag-gpu">Context</span>
+            </div>
+            <div class="arch-node-desc">
+              • PP-OCRv5 mobile det + v6 medium rec<br>
+              • <strong>전체 문맥 보존:</strong> "제조", "유통기한" 위치 파악
+            </div>
+          </div>
+
+          <div class="arch-node branch-b">
+            <div class="arch-node-title">
+              <span>Branch B: YOLO Expiry Crop</span>
+              <span class="tag tag-sota">Recall Boost</span>
+            </div>
+            <div class="arch-node-desc">
+              • YOLOv8n Expiry Binary (Kaggle 학습)<br>
+              • 960px 패치 Crop → v6 rec 판독
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-connector">➔</div>
+
+        <!-- Union & Selector & Normalizer -->
+        <div class="arch-col">
+          <div class="arch-node union-node">
+            <div class="arch-node-title">
+              <span>후보 결합 & Train-Fit Selector</span>
+              <span class="tag tag-sota">Ensemble</span>
+            </div>
+            <div class="arch-node-desc">
+              1. 후보 병합 & 캘린더 유효성 검증<br>
+              2. 공간 일치도(IoU) & 키워드 가중치 평가
+            </div>
+          </div>
+
+          <div class="arch-node output-node" style="margin-top: 6px;">
+            <div class="arch-node-title">
+              <span>최종 정규화 (YYYY-MM-DD)</span>
+              <span class="tag tag-cpu">Output</span>
+            </div>
+            <div class="arch-node-desc">
+              단일 날짜 표준 포맷 변환 완료 (결측: NoNE/None)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selector 가중치 비개발자 맞춤 해설 -->
+    <div class="feature-box" style="margin-top: 10px;">
+      <div class="feature-box-title">🧠 Train-Fit Spatial Selector 가중치(Weights)의 쉬운 해석</div>
+      <div class="feature-box-desc">
+        복잡한 수식 대신 5가지 상식적 판단 기준을 종합하여 점수를 매깁니다:
+        <ul style="margin-left: 18px; margin-top: 4px; line-height: 1.45;">
+          <li><strong>YOLO 보너스 (+1.5):</strong> "YOLO 날짜 전문 탐색기가 찾아낸 박스 안에 있는 글자인가?"</li>
+          <li><strong>날짜 파서 신뢰도 (+1.5):</strong> "완전한 연-월-일 형태를 갖추었는가?" (부분 날짜 감점)</li>
+          <li><strong>OCR 글자 확신도 (+1.5):</strong> "OCR 판독기가 글자를 흐릿하지 않고 선명하게 읽었는가?"</li>
+          <li><strong>탐지 신뢰도 (+0.5):</strong> "텍스트 검출 박스의 형태가 깨지지 않았는가?"</li>
+          <li><strong>공간 일치도 IoU (+0.5):</strong> "전체 화면 탐색 박스와 YOLO 정밀 박스가 같은 자리를 가리키고 있는가?"</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== 6. 종합 벤치마크 마스터 표 ==================== -->
+  <div class="section-card no-break">
+    <div class="section-header">
+      <div class="section-title-group">
+        <div class="section-num">05</div>
+        <h2 class="section-title">종합 Benchmark 실측 비교</h2>
+      </div>
+      <span class="section-badge">ITDA Validation (N=459) 전수 평가</span>
+    </div>
+
+    <p>
+      아래 수치는 추정이 아닌 <strong>동일한 459개 검증 이미지에 대해 직접 수행된 최신 실측 결과</strong>입니다. 
+      <span class="tag tag-gpu">GPU 실측</span>과 <span class="tag tag-cpu">CPU 배포 환경</span>을 명확히 구분하여 표기했습니다.
+    </p>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>파이프라인 모델 구성</th>
+            <th class="text-center">구분</th>
+            <th class="text-right">Final EM (정확도)</th>
+            <th class="text-right">Candidate Recall</th>
+            <th class="text-right">Selection Acc (후보존재시)</th>
+            <th class="text-right">처리속도 (sec/img)</th>
+            <th class="text-right">Peak RAM</th>
+            <th>비고 및 해석</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- SOTA Union Row -->
+          <tr class="highlight-row">
+            <td><strong>Full OCR + YOLO Expiry Union (현재 SOTA)</strong></td>
+            <td class="text-center"><span class="tag tag-gpu">Colab T4</span></td>
+            <td class="text-right"><strong>80.61%</strong></td>
+            <td class="text-right"><strong>85.19%</strong></td>
+            <td class="text-right"><strong>94.63%</strong></td>
+            <td class="text-right">~0.47s <sup>*1</sup></td>
+            <td class="text-right">~2.5 GB</td>
+            <td><strong>내부 Validation 최고 실측치</strong> (Train-fit Selector)</td>
+          </tr>
+
+          <!-- Full Baseline -->
+          <tr>
+            <td>Full-Image Baseline (PP-OCRv5 det + v6 rec)</td>
+            <td class="text-center"><span class="tag tag-gpu">Colab T4</span></td>
+            <td class="text-right">71.68%</td>
+            <td class="text-right">75.60%</td>
+            <td class="text-right">94.81%</td>
+            <td class="text-right">0.425s (2.36 img/s)</td>
+            <td class="text-right">2.42 GB</td>
+            <td>단독 베이스라인 (194.85초 전수 완료)</td>
+          </tr>
+
+          <!-- YOLO Crop 960 -->
+          <tr>
+            <td>YOLO Expiry Crop 단독 (960px + v6 rec)</td>
+            <td class="text-center"><span class="tag tag-gpu">Colab T4</span></td>
+            <td class="text-right">67.76%</td>
+            <td class="text-right">72.33%</td>
+            <td class="text-right">93.67%</td>
+            <td class="text-right">0.532s (1.88 img/s)</td>
+            <td class="text-right">1.70 GB</td>
+            <td>단독 대체 불가 입증 (문맥 상실로 67.76% 하락)</td>
+          </tr>
+
+          <!-- YOLO Crop 1280 -->
+          <tr>
+            <td>YOLO Expiry Crop (1280px + v6 rec)</td>
+            <td class="text-center"><span class="tag tag-gpu">Colab T4</span></td>
+            <td class="text-right">66.23%</td>
+            <td class="text-right">71.90%</td>
+            <td class="text-right">92.12%</td>
+            <td class="text-right">- <sup>*2</sup></td>
+            <td class="text-right">3.00 GB</td>
+            <td>해상도 증가 대비 정확도 오히려 하락</td>
+          </tr>
+
+          <!-- VESSL Reference Rows -->
+          <tr class="subtle-row">
+            <td><em>[과거 VESSL 참고] Full-Image Baseline (GPU)</em></td>
+            <td class="text-center"><span class="tag tag-gpu">VESSL T4</span></td>
+            <td class="text-right">69.28%</td>
+            <td class="text-right">75.38%</td>
+            <td class="text-right">91.91%</td>
+            <td class="text-right">0.176s (5.69 img/s)</td>
+            <td class="text-right">1.91 GB</td>
+            <td>초기 파서/선택기 기준 과거 측정값</td>
+          </tr>
+
+          <tr class="subtle-row">
+            <td><em>[과거 VESSL 참고] CPU Detector Branch (4-core)</em></td>
+            <td class="text-center"><span class="tag tag-cpu">VESSL 4-core</span></td>
+            <td class="text-right">67.76%</td>
+            <td class="text-right">72.33%</td>
+            <td class="text-right">93.67%</td>
+            <td class="text-right">0.863s (1.16 img/s)</td>
+            <td class="text-right">~1.8 GB</td>
+            <td>CPU 전수 실측 (395.94초 완주 기록)</td>
+          </tr>
+
+          <tr class="subtle-row">
+            <td><em>[과거 VESSL 참고] CPU Full-Image Baseline (4-core)</em></td>
+            <td class="text-center"><span class="tag tag-cpu">VESSL 4-core</span></td>
+            <td class="text-right">69.28%</td>
+            <td class="text-right">75.38%</td>
+            <td class="text-right">91.91%</td>
+            <td class="text-right">4.870s (0.21 img/s)</td>
+            <td class="text-right">~2.2 GB</td>
+            <td>순수 Full OCR CPU 단독 처리시간</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-top: 4px;">
+      *1: Union 처리속도는 Branch A 및 Branch B의 순차 결합 추정치입니다. *2: YOLO 1280px(44.37초)은 Warm-Cache 후속 측정이므로 정확도만 수록했습니다. *3: <strong>[감사 각주]</strong> 과거 multi_architecture_leaderboard의 결과는 180장 공유 캐시 시뮬레이션 및 하드코딩 가산치 문제로 감사 결과 <strong>전면 무효화되어 영구 제외</strong>되었습니다.
+    </div>
+
+    <!-- Visual Bar Chart -->
+    <div class="chart-box">
+      <div class="chart-title-row">
+        <span class="chart-title">주요 파이프라인 모델 정확도(Final EM) 비교 시각화</span>
+        <span class="chart-split-info">검증 데이터셋: ITDA val.csv (N=459)</span>
+      </div>
+
+      <div class="bar-chart-row">
+        <div class="bar-label">Full OCR + YOLO Union (SOTA)</div>
+        <div class="bar-track">
+          <div class="bar-fill teal" style="width: 80.61%;">80.61%</div>
+        </div>
+        <div class="bar-val-text">80.61%</div>
+      </div>
+
+      <div class="bar-chart-row">
+        <div class="bar-label">Full-Image Baseline (PP-OCRv6)</div>
+        <div class="bar-track">
+          <div class="bar-fill blue" style="width: 71.68%;">71.68%</div>
+        </div>
+        <div class="bar-val-text">71.68%</div>
+      </div>
+
+      <div class="bar-chart-row">
+        <div class="bar-label">YOLO Expiry Crop 단독 (960px)</div>
+        <div class="bar-track">
+          <div class="bar-fill slate" style="width: 67.76%;">67.76%</div>
+        </div>
+        <div class="bar-val-text">67.76%</div>
+      </div>
+
+      <div class="bar-chart-row">
+        <div class="bar-label">YOLO Expiry Crop 단독 (1280px)</div>
+        <div class="bar-track">
+          <div class="bar-fill slate" style="width: 66.23%;">66.23%</div>
+        </div>
+        <div class="bar-val-text">66.23%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== 7. Ablation Summary ==================== -->
+  <div class="section-card no-break">
+    <div class="section-header">
+      <div class="section-title-group">
+        <div class="section-num">06</div>
+        <h2 class="section-title">가설 검증 및 Ablation Study 요약</h2>
+      </div>
+      <span class="section-badge">170+ 실험 전수 분석 결과</span>
+    </div>
+
+    <p>
+      수많은 시행착오를 거치며 검증된 핵심 가설들의 성공 및 실패 원인을 5대 영역으로 정리했습니다:
+    </p>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>실험 영역</th>
+            <th>적용 기법 및 파라미터</th>
+            <th>성능 변화 및 실측치</th>
+            <th>원인 분석 및 최종 판단</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>글자 인식기 (Recognizer)</strong></td>
+            <td>PP-OCRv5 mobile vs server vs PP-OCRv6 medium</td>
+            <td>v5 mobile(34~45%) → server(64~71%) → <strong>v6 medium(71.68%)</strong></td>
+            <td><span class="tag tag-sota">채택</span> SVTR 기반 v6 medium이 한글·숫자 혼합 글꼴에서 월등한 인식률 입증.</td>
+          </tr>
+          <tr>
+            <td><strong>이미지 전처리 (Preprocessing)</strong></td>
+            <td>Grayscale 변환 + Contrast 대비 강조 (B35)</td>
+            <td>EM 71.88% → <strong>56.25% 급락 (-15.63%p)</strong></td>
+            <td><span class="tag tag-invalid">기각</span> 인위적 명암 조절이 도트 프린터 글자나 잉크 번짐을 손상시켜 OCR 실패 유발.</td>
+          </tr>
+          <tr>
+            <td><strong>Detector 해상도 Sweep</strong></td>
+            <td>960px vs 1280px vs 1536px (conf 0.20)</td>
+            <td>
+              960px: 22.42 img/s (1.70 GB, 454장 박스 검출)<br>
+              1280px: 17.90 img/s (3.00 GB, 455장 박스 검출)<br>
+              1536px: 14.91 img/s (4.30 GB, 454장 박스 검출)
+            </td>
+            <td><span class="tag tag-sota">최적화</span> <strong>960px을 기본 1차 경로</strong>로 채택. 1280px은 불확실 샘플 fallback으로 사용하며, 메모리만 낭비하는 1536px은 전면 배제.</td>
+          </tr>
+          <tr>
+            <td><strong>문자열 제한 Fine-tuning</strong></td>
+            <td>Date-only CTC 학습 & 숫자 Sanitizer 적용</td>
+            <td>CTC Exact Match 0% 기록 / End-to-end 성능 55.7% → 51.5% 하락</td>
+            <td><span class="tag tag-invalid">기각</span> 억지로 숫자만 나오게 강제하면 이미 잘린 텍스트가 복구되지 않고 오인식만 가중됨.</td>
+          </tr>
+          <tr>
+            <td><strong>영역 Crop 전략</strong></td>
+            <td>YOLO 박스 1.25배 확대 Crop vs 1.0배 고정 Margin</td>
+            <td>1.25배 확대 시 Candidate Recall <strong>84.97% → 70.37% 폭락</strong></td>
+            <td><span class="tag tag-sota">최적화</span> 박스를 넓히면 주변 성분표나 바코드가 침범하여 혼란 가중. 원본 박스(expand=1.0) 유지.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== 8. 병목 분석 및 Evidence ==================== -->
+  <div class="section-card no-break">
+    <div class="section-header">
+      <div class="section-title-group">
+        <div class="section-num">07</div>
+        <h2 class="section-title">심층 병목 분석 (Bottleneck Analysis)</h2>
+      </div>
+      <span class="section-badge">데이터 기반 패인 규명</span>
+    </div>
+
+    <p style="margin-bottom: 6px;">
+      "왜 100점이 나오지 않는가?"를 분석하기 위해 파이프라인을 <strong>후보 생성(Recall)</strong>과 <strong>후보 선택(Selection)</strong> 2단계 퍼널로 분리했습니다.
+    </p>
+
+    <!-- Funnel Visualization -->
+    <div class="funnel-container">
+      <div class="funnel-step">
+        <div class="funnel-header">
+          <span>STEP 1. 이미지 입력</span>
+          <span class="tag tag-cpu">Total</span>
+        </div>
+        <div class="funnel-stat">459 장</div>
+        <div class="funnel-footer">검증 대상 전체 이미지</div>
+      </div>
+
+      <div class="funnel-step danger">
+        <div class="funnel-header">
+          <span>STEP 2. 날짜 후보 검출</span>
+          <span class="tag tag-invalid">주요 병목 (85.19%)</span>
+        </div>
+        <div class="funnel-stat danger-color">391 장 성공</div>
+        <div class="funnel-footer"><strong>68장 (14.81%) 후보 누락:</strong> 글자 미인식/파싱 실패</div>
+      </div>
+
+      <div class="funnel-step success">
+        <div class="funnel-header">
+          <span>STEP 3. 최종 날짜 선택</span>
+          <span class="tag tag-sota">안정적 (94.63%)</span>
+        </div>
+        <div class="funnel-stat success-color">370 장 적중</div>
+        <div class="funnel-footer"><strong>Final EM 80.61%:</strong> 후보 존재 시 94.63% 정답 선택</div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 13px; margin: 12px 0 6px 0; color: var(--primary-dark);">
+      Full Baseline 오답 130건 원인 분석 (오류 내부 비율)
+    </h3>
+
+    <div class="grid-4">
+      <div class="feature-box">
+        <div class="feature-box-title">GEN (후보 생성 실패)</div>
+        <div class="feature-box-desc">
+          <strong>61건 (46.92%)</strong><br>
+          "2025."와 "09."처럼 연월일이 분리되어 날짜로 조립 실패
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">REC (글자 인식 실패)</div>
+        <div class="feature-box-desc">
+          <strong>50건 (38.46%)</strong><br>
+          도트 잉크 번짐, 각도 기울어짐 등으로 글자 판독 누락
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">SEL (선택 오류)</div>
+        <div class="feature-box-desc">
+          <strong>18건 (13.85%)</strong><br>
+          후보에 정답이 있었으나 제조일/코드를 기한으로 오선택
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">DET (영역 검출 누락)</div>
+        <div class="feature-box-desc">
+          <strong>1건 (0.77%)</strong><br>
+          박스 자체를 못 찾은 경우는 1건에 불과해 검출기는 양호
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-Image Evidence Samples -->
+    <h3 style="font-size: 13px; margin: 12px 0 6px 0; color: var(--primary-dark);">
+      대표 이미지 검증 사례 (Per-Image Evidence)
+    </h3>
+
+    <div class="evidence-grid">
+      <div class="evidence-card">
+        <div class="evidence-card-header">
+          <span class="evidence-id">IMG_000084 (복합 날짜)</span>
+          <span class="evidence-tag pass">성공 (정확 일치)</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">실제 정답</span>
+          <span class="evidence-val">2026-03-31</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">추출 후보</span>
+          <span class="evidence-val">2026.03.31 (소비) / 2025.10.01 (제조)</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">선택 이유</span>
+          <span class="evidence-val">later_expiry_date (더 미래 날짜) & 키워드 가중치</span>
+        </div>
+      </div>
+
+      <div class="evidence-card">
+        <div class="evidence-card-header">
+          <span class="evidence-id">IMG_000100 (특수 형식)</span>
+          <span class="evidence-tag pass">성공 (정확 일치)</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">실제 정답</span>
+          <span class="evidence-val">2026-02-11</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">추출 원문</span>
+          <span class="evidence-val">"2026.02.11 (A) Best before"</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">선택 이유</span>
+          <span class="evidence-val">expiry_keyword (Best before 근접) 가산점 부여</span>
+        </div>
+      </div>
+
+      <div class="evidence-card">
+        <div class="evidence-card-header">
+          <span class="evidence-id">IMG_000050 (토큰 분리)</span>
+          <span class="evidence-tag fail">실패 (GEN 후보 누락)</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">실제 정답</span>
+          <span class="evidence-val">2025-09-10 (추정)</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">인식 결과</span>
+          <span class="evidence-val">"2025." 와 "09." 만 읽히고 일자 잘림</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">오류 분석</span>
+          <span class="evidence-val">2025-09-None 파싱되어 유효 캘린더 탈락</span>
+        </div>
+      </div>
+
+      <div class="evidence-card">
+        <div class="evidence-card-header">
+          <span class="evidence-id">IMG_000057 (저조도/흐림)</span>
+          <span class="evidence-tag fail">실패 (REC 글자 누락)</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">실제 정답</span>
+          <span class="evidence-val">2026-05-18</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">인식 결과</span>
+          <span class="evidence-val">숫자 토큰 0개 검출 (Candidate Count: 0)</span>
+        </div>
+        <div class="evidence-row">
+          <span class="evidence-key">오류 분석</span>
+          <span class="evidence-val">어두운 포장재 비닐 반사로 글자 인식기 통과 실패</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ==================== 9. CPU 대회환경 감사 & 10. 로드맵 ==================== -->
+  <div class="section-card no-break">
+    <div class="section-header">
+      <div class="section-title-group">
+        <div class="section-num">08</div>
+        <h2 class="section-title">CPU 대회 환경 호환성 및 안정성 감사</h2>
+      </div>
+      <span class="section-badge">실제 환경 배포 적합성 검증</span>
+    </div>
+
+    <p>
+      대회 채점 서버는 <strong>순수 4-core CPU 오프라인 환경</strong>입니다. 모델이 아무리 정확해도 CPU 환경에서 런타임 에러가 나거나 1장당 수십 초가 걸리면 실격 처리됩니다. 다음 항목들을 정밀 점검했습니다:
+    </p>
+
+    <div class="grid-2">
+      <div class="feature-box">
+        <div class="feature-box-title">✅ 확인 및 검증 완료된 사항</div>
+        <ul style="margin-left: 16px; font-size: 12px; line-height: 1.5; color: #334155;">
+          <li><strong>CPU 패키지 호환:</strong> Paddle 3.3.0 CPU wheel 단독 환경에서 정상 import 및 1장 단일 추론 무결성 확인 완료.</li>
+          <li><strong>정확도 재현성:</strong> 최신 80.61% EM은 Validation(459장) 전수 재추론으로 확인된 Fresh 실측치임.</li>
+          <li><strong>과거 4-core VESSL 기준속도:</strong> Detector Branch 단독 0.863초/장 실측 완료.</li>
+        </ul>
+      </div>
+
+      <div class="feature-box highlight">
+        <div class="feature-box-title">⚠️ 발견된 중대 이슈 및 해결 조치</div>
+        <div class="feature-box-desc">
+          <strong>CPU oneDNN(MKLDNN) 활성화 시 PIR 충돌 발생:</strong><br>
+          Paddle 3.3 CPU 런타임에서 `enable_mkldnn=true` 활성화 시 `ConvertPirAttribute2RuntimeAttribute` 치명적 오류가 발생하며 프로세스가 중단됨.<br><br>
+          <strong>필수 제출 설정:</strong><br>
+          제출용 CPU 파이프라인에서는 반드시 <code>enable_mkldnn=false</code>, <code>FLAGS_use_mkldnn=0</code>으로 강제 비활성화해야 정상 구동됩니다.
+        </div>
+      </div>
+    </div>
+
+    <div class="callout warning">
+      <div class="callout-title">솔직하고 투명한 기술적 한계 공지 (4-Core 미측정)</div>
+      "구글 Colab 무료 런타임은 2 vCPU 환경이므로, <strong>현재 80.61% SOTA Union 파이프라인의 4-core CPU 전체 실행 속도는 아직 측정되지 않았습니다(미측정).</strong> 2 vCPU Colab에서 MKLDNN을 끈 단일 이미지 테스트는 약 13초가 소요되었으나, 이는 전체 최적화 속도를 대변하지 않습니다. 과거 4-core VESSL 측정값(Full OCR 4.87s + Detector 0.86s = 단순 합산 약 5.73초/장 상한)을 참고치로 유지하며, 제출 전 4-vCPU 전용 인스턴스에서 1회 완주 측정을 반드시 수행해야 합니다."
+    </div>
+  </div>
+
+  <div class="section-card no-break">
+    <div class="section-header">
+      <div class="section-title-group">
+        <div class="section-num">09</div>
+        <h2 class="section-title">향후 연구 방향 및 로드맵 (Next Steps)</h2>
+      </div>
+      <span class="section-badge">80.61% → 85%+ 돌파 전략</span>
+    </div>
+
+    <p>
+      선택(Selection)은 이미 94.63%에 도달했으므로, <strong>남은 14.81%의 후보 누락(Recall)을 해결하기 위한 6대 실행 계획</strong>에 집중합니다:
+    </p>
+
+    <div class="grid-3">
+      <div class="feature-box">
+        <div class="feature-box-title">1. Dual Crop (Tight + Context)</div>
+        <div class="feature-box-desc">
+          글자만 바짝 자른 타이트 크롭과 주변 15% 여백을 포함한 컨텍스트 크롭을 동시 생성하여 잘림 방지.
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">2. Line Reconstruction</div>
+        <div class="feature-box-desc">
+          위아래 2줄로 나뉜 날짜("2026." 아래 "09.12")를 공간적 수직 거리를 계산해 한 줄로 이어붙임.
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">3. 320×64 / 480×64 최적화</div>
+        <div class="feature-box-desc">
+          날짜 문자열 종횡비에 맞춰 인식기 입력을 조절하여 도트 폰트 왜곡을 줄이고 연산 속도 가속.
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">4. Perspective Crop 보정</div>
+        <div class="feature-box-desc">
+          비스듬히 찍힌 포장재의 각도를 수평으로 자동 보정한 후 전달하는 4-point 투영 변환 적용.
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">5. Selective Second Pass</div>
+        <div class="feature-box-desc">
+          1차 960px에서 날짜 후보가 0개이거나 확신도가 낮을 때만 1280px 정밀 탐색기를 조건부 호출.
+        </div>
+      </div>
+
+      <div class="feature-box">
+        <div class="feature-box-title">6. Date/Due/Code 관계 추론</div>
+        <div class="feature-box-desc">
+          제조일(date)과 소비기한(due), 배치코드(code)의 기하학적 배치 패턴으로 진짜 기한 특정.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Footer ==================== -->
+  <div class="report-footer no-break">
+    <div>
+      <strong>ITDA OCR Challenge Research Lab</strong> | Single Source of Truth
+    </div>
+    <div class="footer-stamp">
+      REPORT ID: SOTA-VAL459-20260914-V2 | SPLIT: VAL (N=459)
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

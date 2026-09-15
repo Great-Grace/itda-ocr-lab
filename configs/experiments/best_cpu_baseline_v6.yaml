@@ -1,0 +1,44 @@
+name: BEST_CPU_BASELINE_V6_MEDIUM
+runtime:
+  device: cpu
+  threads: 4
+ocr:
+  plugin: paddle_mobile_split
+  weight_id: pp-ocrv6-medium-rec-official
+  params:
+    require_local_weights: true
+    text_detection_model_name: PP-OCRv5_mobile_det
+    text_recognition_model_name: PP-OCRv6_medium_rec
+    text_detection_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/ppocrv5_mobile_det
+    text_recognition_model_dir: ${ITDA_V6_WEIGHTS_ROOT}
+    det_max_side: 960
+    det_thresh: 0.25
+    box_thresh: 0.50
+    unclip_ratio: 1.8
+    recognition_batch_size: 1
+    fallback_enabled: false
+    engine: paddle
+    enable_mkldnn: true
+preprocess:
+  plugin: none
+  params: {}
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    keyword_weight: 0.7
+    negative_keyword_weight: 0.45
+    confidence_weight: 0.2
+    detection_confidence_weight: 0.2
+    calendar_weight: 0.5
+    pattern_weight: 0.25
+    position_weight: 0.25
+    partial_date_penalty: 0.45
+    time_like_penalty: 0.60
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE
+    day_missing_token: None

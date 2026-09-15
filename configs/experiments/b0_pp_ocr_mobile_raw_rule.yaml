@@ -1,0 +1,64 @@
+name: B0_PP_OCR_MOBILE_RAW_RULE
+
+runtime:
+  device: cpu
+  threads: 4
+  max_gpu_hours: 2
+  extra_requirements:
+    - paddlepaddle-gpu
+    - paddleocr
+
+# PP-OCRv5 mobile detector + Korean mobile recognizer.  The directories are
+# intentionally local: inference must never download weights.
+ocr:
+  plugin: paddle_mobile_split
+  weight_id: pp-ocrv5-mobile-ko
+  params:
+    require_local_weights: true
+    lang: korean
+    text_detection_model_name: PP-OCRv5_mobile_det
+    text_recognition_model_name: korean_PP-OCRv5_mobile_rec
+    text_detection_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/ppocrv5_mobile_det
+    text_recognition_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/korean_ppocrv5_mobile_rec
+    det_max_side: 1280
+    det_thresh: 0.25
+    box_thresh: 0.50
+    unclip_ratio: 1.8
+    recognition_batch_size: 8
+    fallback_enabled: true
+    fallback_max_side: 1600
+    fallback_confidence: 0.20
+    engine: paddle
+    enable_mkldnn: true
+    cpu_threads: 4
+    use_doc_orientation_classify: false
+    use_doc_unwarping: false
+    use_textline_orientation: false
+
+# Baseline 0 deliberately leaves the raw image untouched.
+preprocess:
+  plugin: none
+  params: {}
+
+selector:
+  plugin: keyword_regex
+  params:
+    keyword_weight: 0.7
+    negative_keyword_weight: 0.45
+    confidence_weight: 0.2
+    detection_confidence_weight: 0.2
+    calendar_weight: 0.5
+    pattern_weight: 0.25
+    position_weight: 0.25
+    keep_invalid: false
+
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE
+
+benchmark:
+  cpu_layouts: [[1, 4], [2, 2], [4, 1]]
+  measure_peak_ram: true
+  measure_model_size: true

@@ -1,0 +1,49 @@
+name: TEAM_RAPID_ONNX_V5_CASCADE
+
+runtime:
+  device: cpu
+  threads: 4
+
+ocr:
+  plugin: cascade
+  weight_id: rapid-onnx-ppocrv5-korean
+  params:
+    primary_backend: rapid_onnx
+    det_model_path: ${ITDA_WEIGHTS_ROOT}/rapid/ch_PP-OCRv5_det_mobile.onnx
+    rec_model_path: ${ITDA_WEIGHTS_ROOT}/rapid/korean_PP-OCRv5_rec_mobile.onnx
+    use_angle_cls: false
+    det_limit_side_len: 1280
+    det_limit_type: max
+    det_thresh: 0.25
+    det_box_thresh: 0.50
+    det_unclip_ratio: 1.8
+    rec_batch_num: 8
+    retry_preprocessor: clahe_local
+    clip_limit: 2.0
+    tile_grid_size: 8
+
+preprocess:
+  plugin: none
+  params: {}
+
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    keyword_weight: 0.5
+    negative_keyword_weight: 0.3
+    confidence_weight: 0.2
+    detection_confidence_weight: 0.2
+    calendar_weight: 0.3
+    pattern_weight: 0.2
+    position_weight: 0.15
+    partial_date_penalty: 0.35
+    time_like_penalty: 0.50
+    future_date_bonus: 0.0
+
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NoNE
+    none_token: NONE

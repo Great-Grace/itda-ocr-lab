@@ -1,0 +1,47 @@
+name: B41_OCCAM_CASCADE_BASELINE
+runtime:
+  device: cpu
+  threads: 4
+ocr:
+  plugin: cascade
+  weight_id: pp-ocrv6-medium-rec-cascade
+  params:
+    primary_backend: paddle_mobile_split
+    require_local_weights: true
+    text_detection_model_name: PP-OCRv5_mobile_det
+    text_recognition_model_name: PP-OCRv6_medium_rec
+    text_detection_model_dir: ${ITDA_WEIGHTS_ROOT}/paddle/ppocrv5_mobile_det
+    text_recognition_model_dir: ${ITDA_V6_WEIGHTS_ROOT}
+    det_max_side: 960
+    det_thresh: 0.25
+    box_thresh: 0.60
+    unclip_ratio: 1.8
+    recognition_batch_size: 1
+    fallback_enabled: false
+    engine: paddle
+    enable_mkldnn: false
+    cutoff: 2.0
+preprocess:
+  plugin: none
+  params: {}
+selector:
+  plugin: keyword_regex
+  params:
+    allow_day_first: true
+    allow_month_names: true
+    keyword_weight: 0.5
+    negative_keyword_weight: 0.3
+    confidence_weight: 0.2
+    detection_confidence_weight: 0.2
+    calendar_weight: 0.3
+    pattern_weight: 0.2
+    position_weight: 0.15
+    partial_date_penalty: 0.35
+    time_like_penalty: 0.50
+    future_date_bonus: 0.0
+normalizer:
+  plugin: date_ko_v1
+  params:
+    year_missing_token: NONE
+    none_token: NONE
+    day_missing_token: NONE
