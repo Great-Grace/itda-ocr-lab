@@ -89,6 +89,13 @@ class AMSC_CascadeOCRBackend:
         full_params.setdefault("text_detection_model_name", "PP-OCRv5_mobile_det")
         full_params.setdefault("text_recognition_model_name", "PP-OCRv6_medium_rec")
         full_params.setdefault("require_local_weights", False)
+        # Expand env vars and validate optional directories
+        for key in ("text_detection_model_dir", "text_recognition_model_dir"):
+            val = full_params.get(key)
+            if val is not None:
+                expanded = os.path.expandvars(str(val))
+                full_params[key] = expanded if Path(expanded).is_dir() else None
+
         self._paddle_backend = PaddleOCRSplitBackend(
             runtime_device=runtime_device,
             **full_params,
@@ -111,7 +118,10 @@ class AMSC_CascadeOCRBackend:
             self._yolo_batch_size = max(1, int(params.get("yolo_batch_size", 8)))
             self._yolo_max_boxes = max(1, int(params.get("yolo_max_boxes", 4)))
 
-            rec_dir = params.get("yolo_rec_model_dir", full_params.get("text_recognition_model_dir"))
+            rec_dir_val = params.get("yolo_rec_model_dir", full_params.get("text_recognition_model_dir"))
+            rec_dir = os.path.expandvars(str(rec_dir_val)) if rec_dir_val else None
+            if rec_dir and not Path(rec_dir).is_dir():
+                rec_dir = None
             rec_name = str(params.get("yolo_rec_model_name", "PP-OCRv6_medium_rec"))
             from paddleocr import TextRecognition
             self._yolo_recognizer = TextRecognition(
